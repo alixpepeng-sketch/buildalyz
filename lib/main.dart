@@ -4,7 +4,6 @@ import 'dashboard_page.dart';
 import 'home_page.dart';
 import 'seller_page.dart';
 import 'admin_page.dart';
-import 'owner_page.dart'; // <--- Import OwnerPage
 import 'landing.dart';
 
 void main() {
@@ -18,7 +17,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Tr4dict Vloid',
+      title: 'SixEyesX',
       theme: ThemeData(
         brightness: Brightness.dark,
         fontFamily: 'ShareTechMono',
@@ -43,9 +42,9 @@ class MyApp extends StatelessWidget {
                 role: args['role'],
                 sessionKey: args['key'],
                 expiredDate: args['expiredDate'],
-                listBug: List<Map<String, dynamic>>.from(args['listBug'] ?? []),
-                listDoos: List<Map<String, dynamic>>.from(args['listDoos'] ?? []),
-                news: List<Map<String, dynamic>>.from(args['news'] ?? []),
+                listBug: List<Map<String, dynamic>>.from(args['listBug'] ?? []), // ✅ aman
+                listDoos: List<Map<String, dynamic>>.from(args['listDoos'] ?? []), // ✅ aman
+                news: List<Map<String, dynamic>>.from(args['news'] ?? []), // ✅ aman
               ),
             );
 
@@ -55,7 +54,7 @@ class MyApp extends StatelessWidget {
               builder: (_) => HomePage(
                 username: args['username'],
                 password: args['password'],
-                listBug: List<Map<String, dynamic>>.from(args['listBug'] ?? []),
+                listBug: List<Map<String, dynamic>>.from(args['listBug'] ?? []), // ✅ aman
                 role: args['role'],
                 expiredDate: args['expiredDate'],
                 sessionKey: args['sessionKey'],
@@ -66,7 +65,7 @@ class MyApp extends StatelessWidget {
             final args = settings.arguments as Map<String, dynamic>;
             return MaterialPageRoute(
               builder: (_) => SellerPage(
-                keyToken: args['keyToken'], // Pastikan keyToken ada di args
+                keyToken: args['keyToken'],
               ),
             );
 
@@ -74,23 +73,13 @@ class MyApp extends StatelessWidget {
             final args = settings.arguments as Map<String, dynamic>;
             return MaterialPageRoute(
               builder: (_) => AdminPage(
-                sessionKey: args['sessionKey'], // Pastikan sessionKey ada di args
-              ),
-            );
-
-        // --- ROUTE BARU: OWNER ---
-          case '/owner':
-            final args = settings.arguments as Map<String, dynamic>;
-            return MaterialPageRoute(
-              builder: (_) => OwnerPage(
-                sessionKey: args['sessionKey'], // Pastikan sessionKey ada di args
-                username: args['username'], // Pastikan username ada di args
+                sessionKey: args['sessionKey'],
               ),
             );
 
           default:
             return MaterialPageRoute(
-              builder: (_) => Scaffold(
+              builder: (_) => const Scaffold(
                 body: Center(child: Text("404 - Not Found")),
               ),
             );

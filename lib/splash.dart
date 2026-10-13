@@ -1,4 +1,4 @@
-import 'dart:ui'; // Tetap dipertahankan, meskipun filter blur dihapus
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'dashboard_page.dart';
@@ -96,56 +96,67 @@ class _SplashScreenState extends State<SplashScreen>
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
+        alignment: Alignment.center,
         children: [
-          // --- VIDEO BACKGROUND FULL SCREEN ---
-          // Menggunakan Positioned.fill agar video memenuhi layar
           if (_videoController.value.isInitialized)
-            Positioned.fill(
-              child: FittedBox(
-                fit: BoxFit.cover, // Memastikan video menutupi layar tanpa distorsi
-                child: SizedBox(
-                  width: _videoController.value.size.width,
-                  height: _videoController.value.size.height,
-                  child: VideoPlayer(_videoController),
+            Center(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(30),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                  child: Container(
+                    width: MediaQuery.of(context).size.width * 0.8,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.2),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.5),
+                          blurRadius: 20,
+                          spreadRadius: 5,
+                        ),
+                      ],
+                    ),
+                    child: AspectRatio(
+                      aspectRatio: _videoController.value.aspectRatio,
+                      child: VideoPlayer(_videoController),
+                    ),
+                  ),
                 ),
               ),
             )
           else
             const Center(child: CircularProgressIndicator()),
 
-          // --- TEKS "Tr4dict Vloid" ---
-          // Teks melayang di atas video background
           Positioned(
-            bottom: 80, // Jarak dari bawah layar
-            left: 0,   // Mulai dari sisi kiri layar
-            right: 0,  // Sampai sisi kanan layar
-            child: Center( // Widget Center agar teks berada di tengah horizontal
-              child: Text(
-                "Tr4dict Vloid",
-                style: TextStyle(
-                  fontSize: 42,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  letterSpacing: 3,
-                  shadows: [
-                    Shadow(
-                      color: Colors.redAccent.withOpacity(0.9),
-                      blurRadius: 15,
-                      offset: const Offset(2, 2),
-                    ),
-                    Shadow(
-                      color: Colors.black.withOpacity(0.8),
-                      blurRadius: 15,
-                      offset: const Offset(-2, -2),
-                    ),
-                  ],
-                ),
+            bottom: 80,
+            child: Text(
+              "SixEyesX",
+              style: TextStyle(
+                fontSize: 42,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                letterSpacing: 3,
+                shadows: [
+                  Shadow(
+                    color: Color(0xFFDC143C).withOpacity(0.9),
+                    blurRadius: 10,
+                    offset: const Offset(2, 2),
+                  ),
+                  Shadow(
+                    color: Colors.black.withOpacity(0.8),
+                    blurRadius: 15,
+                    offset: const Offset(-2, -2),
+                  ),
+                ],
               ),
             ),
           ),
 
-          // --- FADE OUT OVERLAY ---
-          // Efek transisi hitam saat video hampir selesai
           if (_fadeOutStarted)
             FadeTransition(
               opacity: _fadeController.drive(Tween(begin: 1.0, end: 0.0)),

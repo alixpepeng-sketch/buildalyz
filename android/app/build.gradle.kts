@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.dark.darkverse"
+    namespace = "com.nullx.evo"
     compileSdk = 35
     ndkVersion = "27.0.12077973"
 
@@ -20,18 +20,11 @@ android {
     }
 
     defaultConfig {
-        // Support Android 7 (API 24) sampai Android 15 (API 35) - stabil
-        // Kalo mau Android 16 ganti 35 jadi 36 nanti setelah rilis stabil
-        applicationId = "com.dark.darkverse"
-        minSdk = 24
-        targetSdk = 35
+        applicationId = "com.nullx.evo"
+        minSdk = 23                         // ✅ ganti di sini
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-
-        // FIX VIVO Y02 32-bit biar compatible
-        ndk {
-            abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86_64")
-        }
     }
 
     buildTypes {
@@ -39,8 +32,6 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
-            isMinifyEnabled = false
-            isShrinkResources = false
         }
     }
 }

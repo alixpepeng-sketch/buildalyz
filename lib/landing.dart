@@ -1,4 +1,6 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:video_player/video_player.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
@@ -9,41 +11,53 @@ class LandingPage extends StatefulWidget {
   State<LandingPage> createState() => _LandingPageState();
 }
 
-class _LandingPageState extends State<LandingPage> with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
+class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin {
+  late VideoPlayerController _controller;
+  late AnimationController _fadeController;
+  late AnimationController _slideController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
-
-  // --- TEMA WARNA MERAH ---
-  final Color primaryDark = const Color(0xFF1A0000); // Hitam kemerahan gelap
-  final Color primaryRed = const Color(0xFFC62828); // Merah tua
-  final Color accentRed = const Color(0xFFFF5252); // Merah terang
-  final Color glassBorder = Colors.white.withOpacity(0.15);
-  final Color cardBg = Colors.white.withOpacity(0.08);
 
   @override
   void initState() {
     super.initState();
+    _controller = VideoPlayerController.asset("assets/videos/landing.mp4")
+      ..initialize().then((_) {
+        setState(() {});
+        _controller.setLooping(true);
+        _controller.play();
+      });
 
-    _animationController = AnimationController(
+    _fadeController = AnimationController(
+      duration: const Duration(seconds: 2),
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+    );
+
+    _slideController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
     );
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
     );
 
-    _slideAnimation = Tween<Offset>(begin: const Offset(0, 0.3), end: const Offset(0, 0)).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(parent: _slideController, curve: Curves.elasticOut),
     );
 
-    _animationController.forward();
+    _fadeController.forward();
+    _slideController.forward();
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
+    _controller.dispose();
+    _fadeController.dispose();
+    _slideController.dispose();
     super.dispose();
   }
 
@@ -57,252 +71,370 @@ class _LandingPageState extends State<LandingPage> with SingleTickerProviderStat
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: primaryDark,
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              primaryDark,
-              primaryRed.withOpacity(0.4),
-              primaryDark,
-            ],
+      backgroundColor: const Color(0xFF0A0A0A),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment.topRight,
+                  radius: 1.5,
+                  colors: [
+                    Color(0xFF4A0000),
+                    Color(0xFF0A0A0A),
+                    Color(0xFF000000),
+                  ],
+                ),
+              ),
+              child: CustomPaint(
+                painter: BackgroundPattern(),
+              ),
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: SlideTransition(
-              position: _slideAnimation,
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const SizedBox(height: 40),
 
-                    // --- AVATAR REZE (TANPA OVAL, BENTUK ASLI) ---
-                    // --- STACK (TEKS NUMPUK DI FOTO) ---
-                    Container(
-                      width: 320,
-                      height: 400, // Tinggi area gabungan foto & teks
-                      child: Stack(
-                        alignment: Alignment.bottomCenter, // Posisi teks di bagian bawah
-                        children: [
-                          // LAYER 1: FOTO (Di bawah)
-                          Positioned.fill(
-                            child: Image.asset(
-                              "assets/images/reze.png",
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(color: primaryRed);
-                              },
+          SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.2),
+                            width: 1,
+                          ),
+                        ),
+                        child: Image.asset(
+                          "assets/images/logo.jpg",
+                          width: 40,
+                          height: 40,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.2),
+                            width: 1,
+                          ),
+                        ),
+                        child: const Text(
+                          "v1.0",
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 20),
+
+                        FadeTransition(
+                          opacity: _fadeAnimation,
+                          child: SlideTransition(
+                            position: _slideAnimation,
+                            child: Container(
+                              height: 280,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(24),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF8B0000).withOpacity(0.3),
+                                    blurRadius: 20,
+                                    spreadRadius: 5,
+                                  ),
+                                ],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(24),
+                                child: Stack(
+                                  children: [
+                                    _controller.value.isInitialized
+                                        ? SizedBox(
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                      child: FittedBox(
+                                        fit: BoxFit.cover,
+                                        child: SizedBox(
+                                          width: _controller.value.size.width,
+                                          height: _controller.value.size.height,
+                                          child: VideoPlayer(_controller),
+                                        ),
+                                      ),
+                                    )
+                                        : Container(
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                      color: const Color(0xFF4A0000),
+                                      child: const Center(
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            CircularProgressIndicator(
+                                              color: Color(0xFFB22222),
+                                              strokeWidth: 3,
+                                            ),
+                                            SizedBox(height: 16),
+                                            Text(
+                                              "Loading content...",
+                                              style: TextStyle(
+                                                color: Colors.white70,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+
+                                    Positioned.fill(
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                            colors: [
+                                              Colors.transparent,
+                                              Colors.black.withOpacity(0.7),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+
+                                    Positioned(
+                                      bottom: 30,
+                                      left: 0,
+                                      right: 0,
+                                      child: Center(
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withOpacity(0.6),
+                                            borderRadius: BorderRadius.circular(30),
+                                            border: Border.all(
+                                              color: const Color(0xFFB22222).withOpacity(0.5),
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            "SixEyesX",
+                                            style: TextStyle(
+                                              fontSize: 28,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                              letterSpacing: 1.2,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
+                        ),
 
-                          // LAYER 2: TEKS (Di atas foto)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 30), // Geser teks sedikit ke atas dari bawah
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
+                        const SizedBox(height: 60),
+
+                        Container(
+                          width: double.infinity,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF8B0000).withOpacity(0.4),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF8B0000),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              elevation: 0,
+                            ),
+                            onPressed: () {
+                              Navigator.pushNamed(context, "/login");
+                            },
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                ShaderMask(
-                                  shaderCallback: (bounds) => LinearGradient(
-                                    colors: [accentRed, Colors.white],
-                                  ).createShader(bounds),
-                                  child: const Text(
-                                    "Tr4dict Vloid",
-                                    style: TextStyle(
-                                      fontSize: 34,
-                                      fontWeight: FontWeight.w800,
-                                      color: Colors.white,
-                                      letterSpacing: 1.0,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 5),
-                                const Text(
-                                  "Please Log in or Buy Access to continue",
+                                Icon(Icons.login_rounded, size: 20),
+                                SizedBox(width: 8),
+                                Text(
+                                  "Login",
                                   style: TextStyle(
-                                    color: Colors.white70, // Sedikit lebih terang agar terbaca di foto
-                                    fontSize: 12,
-                                    shadows: [
-                                      Shadow( // Bayangan agar teks terbaca jelas di atas gambar
-                                        blurRadius: 4,
-                                        color: Colors.black,
-                                        offset: Offset(0, 1),
-                                      ),
-                                    ],
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
                                   ),
-                                  textAlign: TextAlign.center,
                                 ),
                               ],
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 40), // Jarak ke tombol di bawahnya
-
-                    // --- TOMBOL LOGIN ---
-                    Container(
-                      width: double.infinity,
-                      height: 55,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [primaryRed, accentRed],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
                         ),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: primaryRed.withOpacity(0.4),
-                            blurRadius: 15,
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
-                      ),
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
-                          shape: RoundedRectangleBorder(
+
+                        const SizedBox(height: 16),
+
+                        Container(
+                          width: double.infinity,
+                          height: 56,
+                          decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        onPressed: () {
-                          Navigator.pushNamed(context, "/login");
-                        },
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.login, color: Colors.white, size: 20),
-                            SizedBox(width: 10),
-                            Text(
-                              "Sign In",
-                              style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white),
+                            border: Border.all(
+                              color: const Color(0xFFB22222),
+                              width: 2,
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // --- TOMBOL BUY ACCESS ---
-                    Container(
-                      width: double.infinity,
-                      height: 55,
-                      decoration: BoxDecoration(
-                        color: cardBg,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: primaryRed.withOpacity(0.5)),
-                      ),
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          side: BorderSide.none,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
                           ),
-                        ),
-                        onPressed: () => _openUrl("https://t.me/kenzzreal1"),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.shopping_bag, color: accentRed, size: 20),
-                            const SizedBox(width: 10),
-                            Text(
-                              "Buy Access",
-                              style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: accentRed),
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFFB22222),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              side: BorderSide.none,
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 30),
-
-                    // --- TOMBOL CONTACT (SEJAJAR KANAN KIRI) ---
-                    Row(
-                      children: [
-                        // Tombol Telegram
-                        Expanded(
-                          child: _buildContactButton(
-                            icon: FontAwesomeIcons.telegram,
-                            label: "Telegram",
-                            url: "https://t.me/Kizzyytsx",
-                            color: const Color(0xFF0088cc),
+                            onPressed: () => _openUrl("https://t.me/ikyhousting"),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.app_registration_rounded, size: 20),
+                                SizedBox(width: 8),
+                                Text(
+                                  "Register",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                        const SizedBox(width: 15),
-                        // Tombol WhatsApp
-                        Expanded(
-                          child: _buildContactButton(
-                            icon: FontAwesomeIcons.whatsapp,
-                            label: "WhatsApp",
-                            url: "https://wa.me/62895406726553",
-                            color: const Color(0xFF25D366),
-                          ),
-                        ),
+
+                        const SizedBox(height: 40),
                       ],
                     ),
-
-                    const SizedBox(height: 40),
-
-                    // --- FOOTER ---
-                    Text(
-                      "© 2026 Tr4dict Vloid",
-                      style: TextStyle(color: Colors.white38, fontSize: 11),
-                    ),
-                    const SizedBox(height: 20),
-                  ],
+                  ),
                 ),
-              ),
+
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.3),
+                    border: Border(
+                      top: BorderSide(
+                        color: Colors.white.withOpacity(0.1),
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      const Text(
+                        "Connect With Us",
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildSocialButton(
+                            icon: FontAwesomeIcons.telegram,
+                            url: "https://t.me/ikyhousting",
+                          ),
+                          const SizedBox(width: 16),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        "© 2025 SixEyesX - All Rights Reserved",
+                        style: TextStyle(
+                          color: Colors.white38,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildContactButton({required IconData icon, required String label, required String url, required Color color}) {
-    return InkWell(
-      onTap: () => _openUrl(url),
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        height: 50,
-        decoration: BoxDecoration(
-          color: cardBg,
-          border: Border.all(color: glassBorder),
-          borderRadius: BorderRadius.circular(12),
+  Widget _buildSocialButton({required IconData icon, required String url}) {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.2),
+          width: 1,
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            FaIcon(icon, color: color, size: 20),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
-            ),
-          ],
+      ),
+      child: IconButton(
+        icon: FaIcon(
+          icon,
+          color: const Color(0xFFB22222),
+          size: 20,
         ),
+        onPressed: () => _openUrl(url),
       ),
     );
   }
+}
+
+class BackgroundPattern extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.03)
+      ..style = PaintingStyle.fill;
+
+    const dotSize = 2.0;
+    const spacing = 30.0;
+
+    for (double x = 0; x < size.width; x += spacing) {
+      for (double y = 0; y < size.height; y += spacing) {
+        canvas.drawCircle(Offset(x, y), dotSize, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

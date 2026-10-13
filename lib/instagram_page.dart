@@ -14,7 +14,7 @@ class InstagramDownloaderPage extends StatefulWidget {
   State<InstagramDownloaderPage> createState() => _InstagramDownloaderPageState();
 }
 
-class _InstagramDownloaderPageState extends State<InstagramDownloaderPage> {
+class _InstagramDownloaderPageState extends State<InstagramDownloaderPage> with TickerProviderStateMixin {
   final TextEditingController _urlController = TextEditingController();
   bool _isLoading = false;
   List<dynamic>? _mediaData;
@@ -22,17 +22,65 @@ class _InstagramDownloaderPageState extends State<InstagramDownloaderPage> {
   VideoPlayerController? _videoController;
   ChewieController? _chewieController;
 
-  // --- Warna Tema Hitam Ungu ---
-  final Color primaryDark = Colors.black;
-  final Color primaryPurple = const Color(0xFF6200EA); // Ungu utama (Deep Purple)
-  final Color accentPurple = const Color(0xFFD500F9); // Ungu aksen lebih terang
-  final Color lightPurple = const Color(0xFFE040FB);   // Ungu highlight
-  final Color primaryWhite = Colors.white;
-  final Color accentGrey = Colors.grey.shade400;
-  final Color cardDark = const Color(0xFF1E1B26); // Latar kartu dengan tint ungu
+  late AnimationController _fadeController;
+  late AnimationController _slideController;
+  late AnimationController _pulseController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+  late Animation<double> _pulseAnimation;
+
+  // Tema warna hitam biru
+  final Color primaryDark = const Color(0xFF0A0A0A);
+  final Color primaryBlue = const Color(0xFF8B0000);
+  final Color accentBlue = const Color(0xFFDC143C);
+  final Color lightBlue = const Color(0xFFFF6B6B);
+  final Color cardDark = const Color(0xFF1A1A1A);
+  final Color cardDarker = const Color(0xFF141414);
+  final Color successGreen = const Color(0xFF10B981);
+  final Color warningOrange = const Color(0xFFF59E0B);
+  final Color dangerRed = const Color(0xFFEF4444);
+
+  @override
+  void initState() {
+    super.initState();
+
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+
+    _slideController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
+    );
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOut));
+
+    _pulseAnimation = Tween<double>(begin: 0.95, end: 1.05).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+
+    _fadeController.forward();
+    _slideController.forward();
+  }
 
   @override
   void dispose() {
+    _fadeController.dispose();
+    _slideController.dispose();
+    _pulseController.dispose();
     _urlController.dispose();
     _videoController?.dispose();
     _chewieController?.dispose();
@@ -102,10 +150,10 @@ class _InstagramDownloaderPageState extends State<InstagramDownloaderPage> {
               looping: false,
               showControls: true,
               materialProgressColors: ChewieProgressColors(
-                playedColor: primaryPurple, // Diubah ke ungu
-                handleColor: lightPurple,   // Diubah ke ungu
-                backgroundColor: accentGrey.withOpacity(0.3),
-                bufferedColor: accentGrey.withOpacity(0.2),
+                playedColor: accentBlue,
+                handleColor: lightBlue,
+                backgroundColor: Colors.white.withOpacity(0.3),
+                bufferedColor: Colors.white.withOpacity(0.2),
               ),
             );
           });
@@ -127,17 +175,77 @@ class _InstagramDownloaderPageState extends State<InstagramDownloaderPage> {
         text: 'Video Instagram',
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error sharing: $e', style: TextStyle(color: primaryWhite)),
-          backgroundColor: primaryPurple, // Diubah ke ungu
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+      _showNotification("Error", "Error sharing: $e", dangerRed);
+    }
+  }
+
+  void _showNotification(String title, String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        content: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: cardDarker,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withOpacity(0.5)),
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.3),
+                blurRadius: 8,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  color == successGreen ? Icons.check_circle :
+                  color == dangerRed ? Icons.error : Icons.info,
+                  color: color,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      message,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
-      );
-    }
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 4),
+      ),
+    );
   }
 
   Widget _buildMediaGrid() {
@@ -148,8 +256,8 @@ class _InstagramDownloaderPageState extends State<InstagramDownloaderPage> {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
         childAspectRatio: 0.8,
       ),
       itemCount: _mediaData!.length,
@@ -166,83 +274,80 @@ class _InstagramDownloaderPageState extends State<InstagramDownloaderPage> {
           child: Container(
             decoration: BoxDecoration(
               color: cardDark,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: primaryPurple.withOpacity(0.3)), // Diubah ke ungu
+              borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: primaryPurple.withOpacity(0.2), // Diubah ke ungu
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
                 ),
               ],
             ),
-            child: Column(
-              children: [
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(12),
-                      topRight: Radius.circular(12),
-                    ),
-                    child: isVideo
-                        ? Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Image.network(
-                          media['thumbnail'] ?? media['url'],
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
-                            color: Colors.black.withOpacity(0.5),
-                            child: Icon(Icons.videocam, color: lightPurple), // Diubah ke ungu
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 8,
-                          right: 8,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.7),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(Icons.play_arrow, color: primaryWhite, size: 16),
-                          ),
-                        ),
-                      ],
-                    )
-                        : Image.network(
-                      media['url'],
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: Colors.black.withOpacity(0.5),
-                        child: Icon(Icons.photo, color: lightPurple), // Diubah ke ungu
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.network(
+                    media['thumbnail'] ?? media['url'],
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: cardDarker,
+                      child: const Center(
+                        child: Icon(Icons.error, color: Colors.white54),
                       ),
                     ),
                   ),
-                ),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
+                  // Overlay gradient
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withOpacity(0.7),
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                    ),
+                  ),
+                  // Media type indicator
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.7),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
                         isVideo ? Icons.videocam : Icons.photo,
-                        color: lightPurple, // Diubah ke ungu
-                        size: 14,
+                        color: accentBlue,
+                        size: 16,
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        isVideo ? 'Video' : 'Photo',
-                        style: TextStyle(
-                          color: primaryWhite,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  // Play button for videos
+                  if (isVideo)
+                    Positioned(
+                      bottom: 12,
+                      right: 12,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: accentBlue,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.play_arrow,
+                          color: Colors.white,
+                          size: 20,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ],
+                    ),
+                ],
+              ),
             ),
           ),
         );
@@ -263,10 +368,10 @@ class _InstagramDownloaderPageState extends State<InstagramDownloaderPage> {
             looping: false,
             showControls: true,
             materialProgressColors: ChewieProgressColors(
-              playedColor: primaryPurple, // Diubah ke ungu
-              handleColor: lightPurple,   // Diubah ke ungu
-              backgroundColor: accentGrey.withOpacity(0.3),
-              bufferedColor: accentGrey.withOpacity(0.2),
+              playedColor: accentBlue,
+              handleColor: lightBlue,
+              backgroundColor: Colors.white.withOpacity(0.3),
+              bufferedColor: Colors.white.withOpacity(0.2),
             ),
           );
         });
@@ -278,224 +383,225 @@ class _InstagramDownloaderPageState extends State<InstagramDownloaderPage> {
     return Scaffold(
       backgroundColor: primaryDark,
       appBar: AppBar(
-        title: const Text(
-          'INSTAGRAM DOWNLOADER',
-          style: TextStyle(
-            fontFamily: 'Orbitron',
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: accentBlue.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.camera_alt,
+                color: accentBlue,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              "Instagram Downloader",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
         backgroundColor: primaryDark,
-        centerTitle: true,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              // Input Section
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: cardDark,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: primaryPurple.withOpacity(0.3)), // Diubah ke ungu
-                  boxShadow: [
-                    BoxShadow(
-                      color: primaryPurple.withOpacity(0.2), // Diubah ke ungu
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: _urlController,
-                      style: TextStyle(color: primaryWhite, fontSize: 16),
-                      decoration: InputDecoration(
-                        labelText: 'Masukkan URL Instagram',
-                        labelStyle: TextStyle(color: lightPurple), // Diubah ke ungu
-                        hintText: 'Contoh: https://www.instagram.com/reel/xxx/',
-                        hintStyle: TextStyle(color: accentGrey),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: primaryPurple.withOpacity(0.5)), // Diubah ke ungu
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: lightPurple, width: 2), // Diubah ke ungu
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        filled: true,
-                        fillColor: Colors.black.withOpacity(0.3),
-                        prefixIcon: Icon(Icons.camera_alt, color: lightPurple), // Diubah ke ungu
-                        suffixIcon: _isLoading
-                            ? const Padding(
-                          padding: EdgeInsets.all(12.0),
-                          child: SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              color: Color(0xFFD500F9), // Warna ungu loading
-                              strokeWidth: 2,
-                            ),
-                          ),
-                        )
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _downloadInstagram,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryPurple, // Diubah ke ungu
-                          foregroundColor: primaryWhite,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 4,
-                          shadowColor: primaryPurple.withOpacity(0.5), // Diubah ke ungu
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(_isLoading ? Icons.hourglass_top : Icons.download, size: 20),
-                            const SizedBox(width: 8),
-                            Text(
-                              _isLoading ? 'PROSES...' : 'DOWNLOAD',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: 'Orbitron',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Error Message
-              if (_errorMessage != null)
+      body: FadeTransition(
+        opacity: _fadeAnimation,
+        child: SlideTransition(
+          position: _slideAnimation,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                // Header Section
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.purple.withOpacity(0.1), // Diubah ke ungu transparan
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.purple.withOpacity(0.3)), // Diubah ke ungu
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.error_outline, color: accentPurple), // Diubah ke ungu
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          _errorMessage!,
-                          style: TextStyle(color: accentPurple, fontSize: 14), // Diubah ke ungu
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-              const SizedBox(height: 20),
-
-              // Video Player (if video is selected)
-              if (_chewieController != null)
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: cardDark,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: primaryPurple.withOpacity(0.3)), // Diubah ke ungu
+                    gradient: LinearGradient(
+                      colors: [primaryBlue, accentBlue],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
                     boxShadow: [
                       BoxShadow(
-                        color: primaryPurple.withOpacity(0.2), // Diubah ke ungu
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
+                        color: accentBlue.withOpacity(0.3),
+                        blurRadius: 15,
+                        offset: const Offset(0, 5),
                       ),
                     ],
                   ),
                   child: Column(
                     children: [
-                      // Video Header
+                      AnimatedBuilder(
+                        animation: _pulseAnimation,
+                        builder: (context, child) {
+                          return Transform.scale(
+                            scale: _pulseAnimation.value,
+                            child: Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.camera_alt,
+                                color: Colors.white,
+                                size: 40,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        "Instagram Media Downloader",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "Download photos and videos from Instagram",
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.8),
+                          fontSize: 14,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Input Section
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: cardDark,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Instagram URL",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
+                          color: cardDarker,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: accentBlue.withOpacity(0.3)),
+                        ),
+                        child: TextField(
+                          controller: _urlController,
+                          style: const TextStyle(color: Colors.white, fontSize: 16),
+                          decoration: InputDecoration(
+                            hintText: 'https://www.instagram.com/reel/xxx/',
+                            hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            suffixIcon: _isLoading
+                                ? Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: accentBlue,
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            )
+                                : null,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        width: double.infinity,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
                           gradient: LinearGradient(
-                            colors: [primaryPurple, accentPurple], // Diubah ke ungu
+                            colors: [accentBlue, lightBlue],
                             begin: Alignment.centerLeft,
                             end: Alignment.centerRight,
                           ),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.play_arrow, color: primaryWhite, size: 16),
-                            SizedBox(width: 8),
-                            Text(
-                              "VIDEO PLAYER",
-                              style: TextStyle(
-                                color: primaryWhite,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: 'Orbitron',
-                              ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: accentBlue.withOpacity(0.4),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: primaryPurple.withOpacity(0.5)), // Diubah ke ungu
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: AspectRatio(
-                            aspectRatio: _videoController!.value.aspectRatio,
-                            child: Chewie(controller: _chewieController!),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: _shareVideo,
+                          onPressed: _isLoading ? null : _downloadInstagram,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: accentPurple, // Diubah ke ungu
-                            foregroundColor: primaryWhite,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            backgroundColor: Colors.transparent,
+                            foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            elevation: 4,
-                            shadowColor: accentPurple.withOpacity(0.5), // Diubah ke ungu
+                            elevation: 0,
                           ),
-                          child: const Row(
+                          child: _isLoading
+                              ? const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.share, size: 20),
-                              SizedBox(width: 8),
+                              SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                              SizedBox(width: 12),
                               Text(
-                                'SHARE VIDEO',
+                                "PROCESSING...",
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  fontFamily: 'Orbitron',
+                                ),
+                              ),
+                            ],
+                          )
+                              : const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.download, size: 20),
+                              SizedBox(width: 8),
+                              Text(
+                                "DOWNLOAD MEDIA",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ],
@@ -506,88 +612,220 @@ class _InstagramDownloaderPageState extends State<InstagramDownloaderPage> {
                   ),
                 ),
 
-              const SizedBox(height: 20),
+                const SizedBox(height: 24),
 
-              // Media Grid
-              if (_mediaData != null && _chewieController == null)
-                Expanded(
-                  child: Column(
-                    children: [
-                      // Grid Header
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [primaryPurple, accentPurple], // Diubah ke ungu
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                          ),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.photo_library, color: primaryWhite, size: 16),
-                            const SizedBox(width: 8),
-                            Text(
-                              "MEDIA GALLERY (${_mediaData!.length})",
-                              style: TextStyle(
-                                color: primaryWhite,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: 'Orbitron',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Expanded(
-                        child: _buildMediaGrid(),
-                      ),
-                    ],
-                  ),
-                ),
-
-              // Placeholder ketika belum ada media
-              if (_mediaData == null && !_isLoading && _errorMessage == null)
-                Expanded(
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                // Error Message
+                if (_errorMessage != null)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: dangerRed.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: dangerRed.withOpacity(0.5)),
+                    ),
+                    child: Row(
                       children: [
-                        Icon(
-                          Icons.camera_alt,
-                          size: 80,
-                          color: primaryPurple.withOpacity(0.3), // Diubah ke ungu
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Instagram Downloader',
-                          style: TextStyle(
-                            color: accentGrey,
-                            fontSize: 18,
-                            fontFamily: 'Orbitron',
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 32),
+                        Icon(Icons.error_outline, color: dangerRed),
+                        const SizedBox(width: 12),
+                        Expanded(
                           child: Text(
-                            'Masukkan URL Instagram Reel, Post, atau Story untuk mendownload media',
-                            style: TextStyle(
-                              color: accentGrey,
-                              fontSize: 14,
-                            ),
-                            textAlign: TextAlign.center,
+                            _errorMessage!,
+                            style: const TextStyle(color: Colors.white, fontSize: 14),
                           ),
                         ),
                       ],
                     ),
                   ),
-                ),
-            ],
+
+                const SizedBox(height: 24),
+
+                // Video Player (if video is selected)
+                if (_chewieController != null)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: cardDark,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: accentBlue.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                Icons.play_circle,
+                                color: accentBlue,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            const Text(
+                              "Video Player",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: accentBlue.withOpacity(0.3)),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: AspectRatio(
+                              aspectRatio: _videoController!.value.aspectRatio,
+                              child: Chewie(controller: _chewieController!),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Container(
+                          width: double.infinity,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            gradient: LinearGradient(
+                              colors: [successGreen, const Color(0xFF34D399)],
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: successGreen.withOpacity(0.4),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: ElevatedButton(
+                            onPressed: _shareVideo,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.share, size: 20),
+                                SizedBox(width: 8),
+                                Text(
+                                  "SHARE VIDEO",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                const SizedBox(height: 24),
+
+                // Media Grid
+                if (_mediaData != null && _chewieController == null)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: accentBlue.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.photo_library,
+                              color: accentBlue,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            "Media Gallery (${_mediaData!.length})",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      _buildMediaGrid(),
+                    ],
+                  ),
+
+                // Placeholder ketika belum ada media
+                if (_mediaData == null && !_isLoading && _errorMessage == null)
+                  Container(
+                    width: double.infinity,
+                    height: 200,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: cardDark,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: accentBlue.withOpacity(0.3)),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.camera_alt,
+                          size: 64,
+                          color: accentBlue.withOpacity(0.5),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Instagram Downloader',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.7),
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Enter Instagram URL to download media',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.5),
+                            fontSize: 14,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),

@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'manage_server.dart';
 import 'wifi_internal.dart';
 import 'wifi_external.dart';
@@ -11,7 +12,7 @@ import 'qr_gen.dart';
 import 'domain_page.dart';
 import 'spam_ngl.dart';
 
-class ToolsPage extends StatelessWidget {
+class ToolsPage extends StatefulWidget {
   final String sessionKey;
   final String userRole;
   final List<Map<String, dynamic>> listDoos;
@@ -23,272 +24,468 @@ class ToolsPage extends StatelessWidget {
     required this.listDoos,
   });
 
-  // --- Warna Tema Hitam Merah ---
-  final Color primaryDark = Colors.black;
-  final Color primaryRed = const Color(0xFFC62828); // Merah tua
-  final Color accentRed = const Color(0xFFFF5252); // Merah aksen lebih terang (Neon)
-  final Color lightRed = const Color(0xFFFF8A80); // Merah lebih terang untuk highlight
-  final Color primaryWhite = Colors.white;
-  final Color accentGrey = Colors.grey;
+  @override
+  State<ToolsPage> createState() => _ToolsPageState();
+}
+
+class _ToolsPageState extends State<ToolsPage> with TickerProviderStateMixin {
+  late AnimationController _bgController;
+  late AnimationController _cardController;
+  late Animation<double> _bgAnimation;
+  late Animation<double> _cardAnimation;
+
+  // Warna tema hitam biru
+  final Color primaryDark = const Color(0xFF0A0A0A);
+  final Color primaryBlue = const Color(0xFF8B0000);
+  final Color accentBlue = const Color(0xFFDC143C);
+  final Color lightBlue = const Color(0xFFFF6B6B);
   final Color cardDark = const Color(0xFF1A1A1A);
+  final Color cardDarker = const Color(0xFF141414);
+  final Color successGreen = const Color(0xFF10B981);
+  final Color warningOrange = const Color(0xFFF59E0B);
+  final Color dangerRed = const Color(0xFFEF4444);
+  final Color primaryWhite = Colors.white;
+  final Color accentGrey = Colors.grey.shade400;
+
+  @override
+  void initState() {
+    super.initState();
+    _bgController = AnimationController(
+      duration: const Duration(seconds: 20),
+      vsync: this,
+    )..repeat();
+
+    _cardController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+
+    _bgAnimation = Tween<double>(begin: 0, end: 1).animate(_bgController);
+    _cardAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _cardController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
+
+    _cardController.forward();
+  }
+
+  @override
+  void dispose() {
+    _bgController.dispose();
+    _cardController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: primaryDark,
-      body: SafeArea(
-        child: Column(
+      body: Stack(
+        children: [
+          // Background dengan animasi partikel
+          _buildAnimatedBackground(),
+
+          // Konten utama
+          SafeArea(
+            child: Column(
+              children: [
+                // Header dengan desain baru
+                _buildNewHeader(),
+
+                // Kategori tools dengan desain baru
+                Expanded(
+                  child: _buildToolCategories(),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnimatedBackground() {
+    return AnimatedBuilder(
+      animation: _bgAnimation,
+      builder: (context, child) {
+        return Stack(
           children: [
-            // === HEADER ===
+            // Background gradient
             Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    primaryRed.withOpacity(0.3), // Diubah ke merah
-                    accentRed.withOpacity(0.2), // Diubah ke merah
-                    primaryRed.withOpacity(0.3), // Diubah ke merah
+                    primaryDark,
+                    const Color(0xFF151937),
+                    const Color(0xFF0F172A),
                   ],
                 ),
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
-                ),
-                border: Border.all(color: primaryRed.withOpacity(0.3)), // Diubah ke merah
-                boxShadow: [
-                  BoxShadow(
-                    color: primaryRed.withOpacity(0.2), // Diubah ke merah
-                    blurRadius: 15,
-                    spreadRadius: 2,
-                  ),
-                ],
               ),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.build_circle_outlined,
-                          color: primaryWhite, size: 28),
-                      const SizedBox(width: 12),
-                      Text(
-                        "TOOLS DASHBOARD",
-                        style: TextStyle(
-                          color: primaryWhite,
-                          fontSize: 20,
-                          fontFamily: 'Orbitron',
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.5,
-                          shadows: [
-                            Shadow(
-                              color: primaryRed.withOpacity(0.8), // Diubah ke merah
-                              blurRadius: 10,
-                            ),
-                          ],
-                        ),
+            ),
+
+            // Partikel animasi
+            ...List.generate(20, (index) {
+              final top = (_bgAnimation.value + index * 0.05) % 1.0;
+              final left = (index * 0.1) % 1.0;
+              final size = 10.0 + (index % 5) * 5.0;
+              final opacity = 0.1 + (index % 3) * 0.1;
+
+              return Positioned(
+                top: top * MediaQuery.of(context).size.height,
+                left: left * MediaQuery.of(context).size.width,
+                child: Container(
+                  width: size,
+                  height: size,
+                  decoration: BoxDecoration(
+                    color: lightBlue.withOpacity(opacity),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: lightBlue.withOpacity(opacity * 0.5),
+                        blurRadius: size,
+                        spreadRadius: size / 2,
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    "Advanced Security & OSINT Tools",
-                    style: TextStyle(
-                      color: lightRed, // Diubah ke merah
-                      fontSize: 14,
-                      fontFamily: 'ShareTechMono',
+                ),
+              );
+            }),
+
+            // Efek cahaya
+            Positioned(
+              top: -100,
+              right: -100,
+              child: AnimatedBuilder(
+                animation: _bgAnimation,
+                builder: (context, child) {
+                  return Transform.rotate(
+                    angle: _bgAnimation.value * 2 * 3.14159,
+                    child: Container(
+                      width: 300,
+                      height: 300,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            accentBlue.withOpacity(0.2),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildNewHeader() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: Column(
+        children: [
+          // Logo dan judul
+          Row(
+            children: [
+              // Logo dengan animasi
+              TweenAnimationBuilder(
+                tween: Tween<double>(begin: 0, end: 1),
+                duration: const Duration(milliseconds: 800),
+                builder: (context, double value, child) {
+                  return Transform.scale(
+                    scale: value,
+                    child: Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [primaryBlue, accentBlue],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(15),
+                        boxShadow: [
+                          BoxShadow(
+                            color: accentBlue.withOpacity(0.4),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.security,
+                        color: Colors.white,
+                        size: 30,
+                      ),
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(width: 16),
+
+              // Judul
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Misc Tools",
+                      style: TextStyle(
+                        color: primaryWhite,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Orbitron',
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    Text(
+                      "Advanced Security Suite",
+                      style: TextStyle(
+                        color: lightBlue,
+                        fontSize: 14,
+                        fontFamily: 'ShareTechMono',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Status user
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: accentBlue.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: accentBlue.withOpacity(0.5)),
+                ),
+                child: Text(
+                  widget.userRole.toUpperCase(),
+                  style: TextStyle(
+                    color: lightBlue,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Orbitron',
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          // Search bar
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToolCategories() {
+    return AnimatedBuilder(
+      animation: _cardAnimation,
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(0, (1 - _cardAnimation.value) * 50),
+          child: Opacity(
+            opacity: _cardAnimation.value,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                children: [
+                  // Bar kategori dengan scroll horizontal
+                  // Grid tools dengan desain baru
+                  Expanded(
+                    child: GridView.builder(
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 15,
+                        mainAxisSpacing: 15,
+                        childAspectRatio: 0.85,
+                      ),
+                      itemCount: 6,
+                      itemBuilder: (context, index) {
+                        return _buildNewToolCard(index);
+                      },
                     ),
                   ),
                 ],
               ),
             ),
+          ),
+        );
+      },
+    );
+  }
 
-            // === CATEGORY CARDS ===
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: GridView.count(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 1.2,
-                  children: [
-                    // DDoS Tools
-                    _buildToolCard(
-                      icon: Icons.flash_on,
-                      title: "DDoS Tools",
-                      subtitle: "Attack & Server",
-                      color: primaryWhite,
-                      gradient: [
-                        primaryRed.withOpacity(0.3), // Diubah ke merah
-                        accentRed.withOpacity(0.2), // Diubah ke merah
-                      ],
-                      onTap: () => _showDDoSTools(context),
-                    ),
-
-                    // Network Tools
-                    _buildToolCard(
-                      icon: Icons.wifi,
-                      title: "Network",
-                      subtitle: "WiFi & Spam",
-                      color: primaryWhite,
-                      gradient: [
-                        primaryRed.withOpacity(0.3), // Diubah ke merah
-                        accentRed.withOpacity(0.2), // Diubah ke merah
-                      ],
-                      onTap: () => _showNetworkTools(context),
-                    ),
-
-                    // OSINT Tools
-                    _buildToolCard(
-                      icon: Icons.search,
-                      title: "OSINT",
-                      subtitle: "Investigation",
-                      color: primaryWhite,
-                      gradient: [
-                        primaryRed.withOpacity(0.3), // Diubah ke merah
-                        accentRed.withOpacity(0.2), // Diubah ke merah
-                      ],
-                      onTap: () => _showOSINTTools(context),
-                    ),
-
-                    // Media Downloader
-                    _buildToolCard(
-                      icon: Icons.download,
-                      title: "Downloader",
-                      subtitle: "Social Media",
-                      color: primaryWhite,
-                      gradient: [
-                        primaryRed.withOpacity(0.3), // Diubah ke merah
-                        accentRed.withOpacity(0.2), // Diubah ke merah
-                      ],
-                      onTap: () => _showDownloaderTools(context),
-                    ),
-
-                    // Additional Tools
-                    _buildToolCard(
-                      icon: Icons.build,
-                      title: "Utilities",
-                      subtitle: "Extra Tools",
-                      color: primaryWhite,
-                      gradient: [
-                        primaryRed.withOpacity(0.3), // Diubah ke merah
-                        accentRed.withOpacity(0.2), // Diubah ke merah
-                      ],
-                      onTap: () => _showUtilityTools(context),
-                    ),
-
-                    // Quick Access
-                    _buildToolCard(
-                      icon: Icons.rocket_launch,
-                      title: "Quick Access",
-                      subtitle: "Favorites",
-                      color: primaryWhite,
-                      gradient: [
-                        primaryRed.withOpacity(0.3), // Diubah ke merah
-                        accentRed.withOpacity(0.2), // Diubah ke merah
-                      ],
-                      onTap: () => _showQuickAccess(context),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+  Widget _buildCategoryChip(String label, bool isSelected) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? accentBlue : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? accentBlue : accentBlue.withOpacity(0.3),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? primaryWhite : lightBlue,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildToolCard({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
-    required List<Color> gradient,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildNewToolCard(int index) {
+    final List<Map<String, dynamic>> tools = [
+      {
+        "icon": Icons.flash_on,
+        "title": "DDoS",
+        "subtitle": "Attack Tools",
+        "color": accentBlue,
+        "onTap": () => _showDDoSTools(context),
+      },
+      {
+        "icon": Icons.wifi,
+        "title": "Network",
+        "subtitle": "WiFi & Spam",
+        "color": accentBlue,
+        "onTap": () => _showNetworkTools(context),
+      },
+      {
+        "icon": Icons.search,
+        "title": "OSINT",
+        "subtitle": "Investigation",
+        "color": accentBlue,
+        "onTap": () => _showOSINTTools(context),
+      },
+      {
+        "icon": Icons.download,
+        "title": "Downloader",
+        "subtitle": "Social Media",
+        "color": accentBlue,
+        "onTap": () => _showDownloaderTools(context),
+      },
+      {
+        "icon": Icons.build,
+        "title": "Utilities",
+        "subtitle": "Extra Tools",
+        "color": accentBlue,
+        "onTap": () => _showUtilityTools(context),
+      },
+      {
+        "icon": Icons.rocket_launch,
+        "title": "Quick Access",
+        "subtitle": "Favorites",
+        "color": accentBlue,
+        "onTap": () => _showQuickAccess(context),
+      },
+    ];
+
+    final tool = tools[index];
+
     return TweenAnimationBuilder(
       tween: Tween<double>(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 600),
+      duration: Duration(milliseconds: 500 + (index * 100)),
       curve: Curves.easeOutBack,
-      builder: (context, double scale, child) {
+      builder: (context, double value, child) {
         return Transform.scale(
-          scale: scale,
-          child: child,
+          scale: value,
+          child: GestureDetector(
+            onTap: tool["onTap"],
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: tool["color"].withOpacity(0.3),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: tool["color"].withOpacity(0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Icon dengan background gradien
+                        Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [primaryBlue, tool["color"]],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(15),
+                            boxShadow: [
+                              BoxShadow(
+                                color: tool["color"].withOpacity(0.4),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            tool["icon"],
+                            color: primaryWhite,
+                            size: 28,
+                          ),
+                        ),
+
+                        const Spacer(),
+
+                        // Judul dan subtitle
+                        Text(
+                          tool["title"],
+                          style: TextStyle(
+                            color: primaryWhite,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'Orbitron',
+                          ),
+                        ),
+
+                        const SizedBox(height: 4),
+
+                        Text(
+                          tool["subtitle"],
+                          style: TextStyle(
+                            color: lightBlue,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
         );
       },
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: gradient,
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: primaryRed.withOpacity(0.4), width: 1), // Diubah ke merah
-            boxShadow: [
-              BoxShadow(
-                color: primaryRed.withOpacity(0.2), // Diubah ke merah
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [primaryRed, accentRed], // Diubah ke merah
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: lightRed.withOpacity(0.3)), // Diubah ke merah
-                    boxShadow: [
-                      BoxShadow(
-                        color: primaryRed.withOpacity(0.3), // Diubah ke merah
-                        blurRadius: 6,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Icon(icon, color: primaryWhite, size: 24),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: primaryWhite,
-                    fontSize: 13,
-                    fontFamily: 'Orbitron',
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    color: lightRed, // Diubah ke merah
-                    fontSize: 12,
-                    fontFamily: 'ShareTechMono',
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 
@@ -297,96 +494,41 @@ class ToolsPage extends StatelessWidget {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: BoxDecoration(
-          color: cardDark,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(30),
-            topRight: Radius.circular(30),
-          ),
-          border: Border.all(color: primaryRed.withOpacity(0.3)), // Diubah ke merah
-          boxShadow: [
-            BoxShadow(
-              color: primaryRed.withOpacity(0.2), // Diubah ke merah
-              blurRadius: 20,
-              spreadRadius: 5,
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [primaryRed, accentRed], // Diubah ke merah
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(30),
-                  topRight: Radius.circular(30),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.flash_on, color: primaryWhite),
-                  const SizedBox(width: 12),
-                  Text(
-                    "DDoS Tools",
-                    style: TextStyle(
-                      color: primaryWhite,
-                      fontSize: 20,
-                      fontFamily: 'Orbitron',
-                      fontWeight: FontWeight.bold,
-                    ),
+      builder: (context) => _buildNewModalSheet(
+        context,
+        "DDoS Tools",
+        Icons.flash_on,
+        [
+          _buildModalOption(
+            icon: Icons.flash_on,
+            label: "Attack Panel",
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => AttackPanel(
+                    sessionKey: widget.sessionKey,
+                    listDoos: widget.listDoos,
                   ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    _buildToolOption(
-                      icon: Icons.flash_on,
-                      label: "Attack Panel",
-                      color: lightRed, // Diubah ke merah
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => AttackPanel(
-                              sessionKey: sessionKey,
-                              listDoos: listDoos,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    _buildToolOption(
-                      icon: Icons.dns,
-                      label: "Manage Server",
-                      color: lightRed, // Diubah ke merah
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ManageServerPage(keyToken: sessionKey),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
                 ),
-              ),
-            ),
-          ],
-        ),
+              );
+            },
+          ),
+          _buildModalOption(
+            icon: Icons.dns,
+            label: "Manage Server",
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ManageServerPage(keyToken: widget.sessionKey),
+                ),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -396,104 +538,48 @@ class ToolsPage extends StatelessWidget {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: BoxDecoration(
-          color: cardDark,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(30),
-            topRight: Radius.circular(30),
+      builder: (context) => _buildNewModalSheet(
+        context,
+        "Network Tools",
+        Icons.wifi,
+        [
+          _buildModalOption(
+            icon: Icons.newspaper_outlined,
+            label: "Spam NGL",
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => NglPage()),
+              );
+            },
           ),
-          border: Border.all(color: primaryRed.withOpacity(0.3)), // Diubah ke merah
-          boxShadow: [
-            BoxShadow(
-              color: primaryRed.withOpacity(0.2), // Diubah ke merah
-              blurRadius: 20,
-              spreadRadius: 5,
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [primaryRed, accentRed], // Diubah ke merah
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(30),
-                  topRight: Radius.circular(30),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.wifi, color: primaryWhite),
-                  const SizedBox(width: 12),
-                  Text(
-                    "Network Tools",
-                    style: TextStyle(
-                      color: primaryWhite,
-                      fontSize: 20,
-                      fontFamily: 'Orbitron',
-                      fontWeight: FontWeight.bold,
-                    ),
+          _buildModalOption(
+            icon: Icons.wifi_off,
+            label: "WiFi Killer (Internal)",
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => WifiKillerPage()),
+              );
+            },
+          ),
+          if (widget.userRole == "vip" || widget.userRole == "owner")
+            _buildModalOption(
+              icon: Icons.router,
+              label: "WiFi Killer (External)",
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => WifiInternalPage(sessionKey: widget.sessionKey),
                   ),
-                ],
-              ),
+                );
+              },
             ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    _buildToolOption(
-                      icon: Icons.newspaper_outlined,
-                      label: "Spam NGL",
-                      color: lightRed, // Diubah ke merah
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => NglPage()),
-                        );
-                      },
-                    ),
-                    _buildToolOption(
-                      icon: Icons.wifi_off,
-                      label: "WiFi Killer (Internal)",
-                      color: lightRed, // Diubah ke merah
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => WifiKillerPage()),
-                        );
-                      },
-                    ),
-                    if (userRole == "vip" || userRole == "owner")
-                      _buildToolOption(
-                        icon: Icons.router,
-                        label: "WiFi Killer (External)",
-                        color: lightRed, // Diubah ke merah
-                        onTap: () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => WifiInternalPage(sessionKey: sessionKey),
-                            ),
-                          );
-                        },
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -503,101 +589,44 @@ class ToolsPage extends StatelessWidget {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: BoxDecoration(
-          color: cardDark,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(30),
-            topRight: Radius.circular(30),
+      builder: (context) => _buildNewModalSheet(
+        context,
+        "OSINT Tools",
+        Icons.search,
+        [
+          _buildModalOption(
+            icon: Icons.badge,
+            label: "NIK Detail",
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const NikCheckerPage()),
+              );
+            },
           ),
-          border: Border.all(color: primaryRed.withOpacity(0.3)), // Diubah ke merah
-          boxShadow: [
-            BoxShadow(
-              color: primaryRed.withOpacity(0.2), // Diubah ke merah
-              blurRadius: 20,
-              spreadRadius: 5,
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [primaryRed, accentRed], // Diubah ke merah
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(30),
-                  topRight: Radius.circular(30),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.search, color: primaryWhite),
-                  const SizedBox(width: 12),
-                  Text(
-                    "OSINT Tools",
-                    style: TextStyle(
-                      color: primaryWhite,
-                      fontSize: 20,
-                      fontFamily: 'Orbitron',
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    _buildToolOption(
-                      icon: Icons.badge,
-                      label: "NIK Detail",
-                      color: lightRed, // Diubah ke merah
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const NikCheckerPage()),
-                        );
-                      },
-                    ),
-                    _buildToolOption(
-                      icon: Icons.domain,
-                      label: "Domain OSINT",
-                      color: lightRed, // Diubah ke merah
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const DomainOsintPage()),
-                        );
-                      },
-                    ),
-                    _buildToolOption(
-                      icon: Icons.person_search,
-                      label: "Phone Lookup",
-                      color: lightRed, // Diubah ke merah
-                      onTap: () => _showComingSoon(context),
-                    ),
-                    _buildToolOption(
-                      icon: Icons.email,
-                      label: "Email OSINT",
-                      color: lightRed, // Diubah ke merah
-                      onTap: () => _showComingSoon(context),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+          _buildModalOption(
+            icon: Icons.domain,
+            label: "Domain OSINT",
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const DomainOsintPage()),
+              );
+            },
+          ),
+          _buildModalOption(
+            icon: Icons.person_search,
+            label: "Phone Lookup",
+            onTap: () => _showComingSoon(context),
+          ),
+          _buildModalOption(
+            icon: Icons.email,
+            label: "Email OSINT",
+            onTap: () => _showComingSoon(context),
+          ),
+        ],
       ),
     );
   }
@@ -607,89 +636,34 @@ class ToolsPage extends StatelessWidget {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.6,
-        decoration: BoxDecoration(
-          color: cardDark,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(30),
-            topRight: Radius.circular(30),
+      builder: (context) => _buildNewModalSheet(
+        context,
+        "Media Downloader",
+        Icons.download,
+        [
+          _buildModalOption(
+            icon: Icons.video_library,
+            label: "TikTok Downloader",
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const TiktokDownloaderPage()),
+              );
+            },
           ),
-          border: Border.all(color: primaryRed.withOpacity(0.3)), // Diubah ke merah
-          boxShadow: [
-            BoxShadow(
-              color: primaryRed.withOpacity(0.2), // Diubah ke merah
-              blurRadius: 20,
-              spreadRadius: 5,
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [primaryRed, accentRed], // Diubah ke merah
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(30),
-                  topRight: Radius.circular(30),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.download, color: primaryWhite),
-                  const SizedBox(width: 12),
-                  Text(
-                    "Media Downloader",
-                    style: TextStyle(
-                      color: primaryWhite,
-                      fontSize: 20,
-                      fontFamily: 'Orbitron',
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    _buildToolOption(
-                      icon: Icons.video_library,
-                      label: "TikTok Downloader",
-                      color: lightRed, // Diubah ke merah
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const TiktokDownloaderPage()),
-                        );
-                      },
-                    ),
-                    _buildToolOption(
-                      icon: Icons.camera_alt,
-                      label: "Instagram Downloader",
-                      color: lightRed, // Diubah ke merah
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const InstagramDownloaderPage()),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+          _buildModalOption(
+            icon: Icons.camera_alt,
+            label: "Instagram Downloader",
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const InstagramDownloaderPage()),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -699,89 +673,33 @@ class ToolsPage extends StatelessWidget {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.6,
-        decoration: BoxDecoration(
-          color: cardDark,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(30),
-            topRight: Radius.circular(30),
+      builder: (context) => _buildNewModalSheet(
+        context,
+        "Utility Tools",
+        Icons.build,
+        [
+          _buildModalOption(
+            icon: Icons.qr_code,
+            label: "QR Generator",
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const QrGeneratorPage()),
+              );
+            },
           ),
-          border: Border.all(color: primaryRed.withOpacity(0.3)), // Diubah ke merah
-          boxShadow: [
-            BoxShadow(
-              color: primaryRed.withOpacity(0.2), // Diubah ke merah
-              blurRadius: 20,
-              spreadRadius: 5,
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [primaryRed, accentRed], // Diubah ke merah
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(30),
-                  topRight: Radius.circular(30),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.build, color: primaryWhite),
-                  const SizedBox(width: 12),
-                  Text(
-                    "Utility Tools",
-                    style: TextStyle(
-                      color: primaryWhite,
-                      fontSize: 20,
-                      fontFamily: 'Orbitron',
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    _buildToolOption(
-                      icon: Icons.qr_code,
-                      label: "QR Generator",
-                      color: lightRed, // Diubah ke merah
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const QrGeneratorPage()),
-                        );
-                      },
-                    ),
-                    _buildToolOption(
-                      icon: Icons.security,
-                      label: "IP Scanner",
-                      color: lightRed, // Diubah ke merah
-                      onTap: () => _showComingSoon(context),
-                    ),
-                    _buildToolOption(
-                      icon: Icons.network_check,
-                      label: "Port Scanner",
-                      color: lightRed, // Diubah ke merah
-                      onTap: () => _showComingSoon(context),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+          _buildModalOption(
+            icon: Icons.security,
+            label: "IP Scanner",
+            onTap: () => _showComingSoon(context),
+          ),
+          _buildModalOption(
+            icon: Icons.network_check,
+            label: "Port Scanner",
+            onTap: () => _showComingSoon(context),
+          ),
+        ],
       ),
     );
   }
@@ -790,30 +708,111 @@ class ToolsPage extends StatelessWidget {
     _showComingSoon(context);
   }
 
-  Widget _buildToolOption({
+  Widget _buildNewModalSheet(
+      BuildContext context,
+      String title,
+      IconData icon,
+      List<Widget> options,
+      ) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.6,
+      decoration: BoxDecoration(
+        color: cardDark,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(30),
+          topRight: Radius.circular(30),
+        ),
+        border: Border.all(color: accentBlue.withOpacity(0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: accentBlue.withOpacity(0.2),
+            blurRadius: 20,
+            spreadRadius: 5,
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Header modal
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [primaryBlue, accentBlue],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(30),
+                topRight: Radius.circular(30),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: primaryWhite),
+                ),
+                const SizedBox(width: 16),
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: primaryWhite,
+                    fontSize: 20,
+                    fontFamily: 'Orbitron',
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Opsi-opsi
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: ListView(
+                children: options,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModalOption({
     required IconData icon,
     required String label,
-    required Color color,
     required VoidCallback onTap,
   }) {
-    return Card(
-      color: cardDark,
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      shape: RoundedRectangleBorder(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.3),
         borderRadius: BorderRadius.circular(15),
-        side: BorderSide(color: primaryRed.withOpacity(0.3)), // Diubah ke merah
+        border: Border.all(color: accentBlue.withOpacity(0.2)),
       ),
-      elevation: 4,
-      shadowColor: primaryRed.withOpacity(0.2), // Diubah ke merah
       child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
         leading: Container(
-          padding: EdgeInsets.all(8),
+          width: 40,
+          height: 40,
           decoration: BoxDecoration(
-            color: primaryRed.withOpacity(0.2), // Diubah ke merah
-            shape: BoxShape.circle,
-            border: Border.all(color: primaryRed.withOpacity(0.3)), // Diubah ke merah
+            gradient: LinearGradient(
+              colors: [primaryBlue, accentBlue],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(icon, color: color),
+          child: Icon(icon, color: primaryWhite),
         ),
         title: Text(
           label,
@@ -824,12 +823,13 @@ class ToolsPage extends StatelessWidget {
           ),
         ),
         trailing: Container(
-          padding: EdgeInsets.all(4),
+          width: 30,
+          height: 30,
           decoration: BoxDecoration(
-            color: primaryRed.withOpacity(0.2), // Diubah ke merah
+            color: accentBlue.withOpacity(0.2),
             shape: BoxShape.circle,
           ),
-          child: Icon(Icons.arrow_forward_ios, color: color, size: 14),
+          child: Icon(Icons.arrow_forward_ios, color: lightBlue, size: 14),
         ),
         onTap: onTap,
       ),
@@ -837,12 +837,13 @@ class ToolsPage extends StatelessWidget {
   }
 
   void _showComingSoon(BuildContext context) {
+    HapticFeedback.lightImpact();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
             Icon(Icons.hourglass_top, color: primaryWhite),
-            SizedBox(width: 8),
+            const SizedBox(width: 8),
             Text(
               'Feature Coming Soon!',
               style: TextStyle(
@@ -853,12 +854,12 @@ class ToolsPage extends StatelessWidget {
             ),
           ],
         ),
-        backgroundColor: primaryRed, // Diubah ke merah
+        backgroundColor: primaryBlue,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
         ),
-        duration: Duration(seconds: 2),
+        duration: const Duration(seconds: 2),
       ),
     );
   }

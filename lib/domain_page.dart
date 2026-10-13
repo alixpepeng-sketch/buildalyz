@@ -17,14 +17,6 @@ class _DomainOsintPageState extends State<DomainOsintPage> {
   List<dynamic>? _subdomainsData;
   String? _errorMessage;
 
-  // --- Konstanta Warna Tema (UBAHAN: TEMA UNGU) ---
-  final Color primaryDark = Colors.black;
-  final Color primaryWhite = Colors.white;
-  // Menggunakan warna ungu cerah (Deep Purple Accent)
-  final Color accentPurple = const Color(0xFF7C4DFF);
-  // Warna kartu sedikit bernuansa ungu sangat gelap
-  final Color cardDark = const Color(0xFF1E1B26);
-
   Future<void> _checkDomain() async {
     final domain = _domainController.text.trim();
     if (domain.isEmpty) {
@@ -96,11 +88,10 @@ class _DomainOsintPageState extends State<DomainOsintPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('$label disalin ke clipboard'),
-        backgroundColor: cardDark,
+        backgroundColor: Colors.grey[800],
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
-          side: BorderSide(color: accentPurple), // Ubah ke ungu
         ),
       ),
     );
@@ -114,12 +105,12 @@ class _DomainOsintPageState extends State<DomainOsintPage> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: cardDark,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: accentPurple.withOpacity(0.5), width: 1), // Ubah ke ungu
+        border: Border.all(color: Colors.grey[300]!, width: 1),
         boxShadow: [
           BoxShadow(
-            color: accentPurple.withOpacity(0.2), // Ubah ke ungu
+            color: Colors.grey.withOpacity(0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -133,7 +124,7 @@ class _DomainOsintPageState extends State<DomainOsintPage> {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: primaryDark,
+              color: Colors.grey[100],
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(16),
                 topRight: Radius.circular(16),
@@ -141,12 +132,12 @@ class _DomainOsintPageState extends State<DomainOsintPage> {
             ),
             child: Row(
               children: [
-                Icon(icon, color: accentPurple, size: 20), // Ubah ke ungu
+                Icon(icon, color: Colors.black, size: 20),
                 const SizedBox(width: 12),
                 Text(
                   title,
-                  style: TextStyle(
-                    color: primaryWhite,
+                  style: const TextStyle(
+                    color: Colors.black,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     fontFamily: 'Orbitron',
@@ -178,9 +169,9 @@ class _DomainOsintPageState extends State<DomainOsintPage> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: primaryDark,
+        color: Colors.grey[50],
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: primaryWhite.withOpacity(0.1)),
+        border: Border.all(color: Colors.grey[300]!),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -191,8 +182,8 @@ class _DomainOsintPageState extends State<DomainOsintPage> {
               children: [
                 Text(
                   label,
-                  style: TextStyle(
-                    color: primaryWhite.withOpacity(0.7),
+                  style: const TextStyle(
+                    color: Colors.black87,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
@@ -200,8 +191,8 @@ class _DomainOsintPageState extends State<DomainOsintPage> {
                 const SizedBox(height: 4),
                 Text(
                   value,
-                  style: TextStyle(
-                    color: primaryWhite,
+                  style: const TextStyle(
+                    color: Colors.black54,
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
                   ),
@@ -211,7 +202,7 @@ class _DomainOsintPageState extends State<DomainOsintPage> {
           ),
           if (showCopyButton)
             IconButton(
-              icon: Icon(Icons.copy, color: accentPurple, size: 20), // Ubah ke ungu
+              icon: Icon(Icons.copy, color: Colors.grey[700], size: 20),
               onPressed: () => _copyToClipboard(value, label),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 40),
@@ -233,10 +224,10 @@ class _DomainOsintPageState extends State<DomainOsintPage> {
       final nsRecords = records['ns']!['response']!['answer'] as List;
       if (nsRecords.isNotEmpty) {
         widgets.addAll([
-          Text(
+          const Text(
             'Name Servers',
             style: TextStyle(
-              color: primaryWhite,
+              color: Colors.black,
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
@@ -258,10 +249,10 @@ class _DomainOsintPageState extends State<DomainOsintPage> {
       if (soaRecords.isNotEmpty) {
         final soa = soaRecords.first['record'];
         widgets.addAll([
-          Text(
+          const Text(
             'SOA Record',
             style: TextStyle(
-              color: primaryWhite,
+              color: Colors.black,
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
@@ -307,10 +298,10 @@ class _DomainOsintPageState extends State<DomainOsintPage> {
       final aRecords = records['a']!['response']!['answer'] as List;
       if (aRecords.isNotEmpty) {
         widgets.addAll([
-          Text(
+          const Text(
             'A Records',
             style: TextStyle(
-              color: primaryWhite,
+              color: Colors.black,
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
@@ -342,8 +333,8 @@ class _DomainOsintPageState extends State<DomainOsintPage> {
     return [
       Text(
         'Ditemukan ${cleanSubdomains.length} subdomain',
-        style: TextStyle(
-          color: primaryWhite.withOpacity(0.7),
+        style: const TextStyle(
+          color: Colors.black54,
           fontSize: 14,
         ),
       ),
@@ -352,25 +343,25 @@ class _DomainOsintPageState extends State<DomainOsintPage> {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: primaryDark,
+          color: Colors.grey[50],
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: primaryWhite.withOpacity(0.1)),
+          border: Border.all(color: Colors.grey[400]!),
         ),
         child: Row(
           children: [
-            Icon(Icons.link, color: accentPurple, size: 16), // Ubah ke ungu
+            Icon(Icons.link, color: Colors.grey[700], size: 16),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 subdomain,
-                style: TextStyle(
-                  color: primaryWhite,
+                style: const TextStyle(
+                  color: Colors.black54,
                   fontSize: 14,
                 ),
               ),
             ),
             IconButton(
-              icon: Icon(Icons.copy, color: accentPurple, size: 18), // Ubah ke ungu
+              icon: Icon(Icons.copy, color: Colors.grey[700], size: 18),
               onPressed: () => _copyToClipboard(subdomain, 'Subdomain'),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 36),
@@ -385,7 +376,7 @@ class _DomainOsintPageState extends State<DomainOsintPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: primaryDark,
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
           'DOMAIN OSINT',
@@ -395,7 +386,7 @@ class _DomainOsintPageState extends State<DomainOsintPage> {
             color: Colors.white,
           ),
         ),
-        backgroundColor: primaryDark,
+        backgroundColor: Colors.black,
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -408,12 +399,12 @@ class _DomainOsintPageState extends State<DomainOsintPage> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: cardDark,
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: accentPurple.withOpacity(0.5)), // Ubah ke ungu
+                  border: Border.all(color: Colors.grey[300]!),
                   boxShadow: [
                     BoxShadow(
-                      color: accentPurple.withOpacity(0.2), // Ubah ke ungu
+                      color: Colors.grey.withOpacity(0.1),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -423,22 +414,22 @@ class _DomainOsintPageState extends State<DomainOsintPage> {
                   children: [
                     TextField(
                       controller: _domainController,
-                      style: TextStyle(color: primaryWhite, fontSize: 16),
+                      style: const TextStyle(color: Colors.black, fontSize: 16),
                       decoration: InputDecoration(
                         labelText: 'Masukkan Domain',
-                        labelStyle: TextStyle(color: primaryWhite.withOpacity(0.7)),
+                        labelStyle: const TextStyle(color: Colors.black87),
                         hintText: 'Contoh: nullxteam.fun',
-                        hintStyle: TextStyle(color: primaryWhite.withOpacity(0.4)),
+                        hintStyle: TextStyle(color: Colors.grey[600]),
                         enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: accentPurple.withOpacity(0.5)), // Ubah ke ungu
+                          borderSide: BorderSide(color: Colors.grey[400]!),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: accentPurple, width: 2), // Ubah ke ungu
+                          borderSide: const BorderSide(color: Colors.black, width: 2),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         filled: true,
-                        fillColor: primaryDark,
+                        fillColor: Colors.grey[50],
                         suffixIcon: _isLoading
                             ? Padding(
                           padding: const EdgeInsets.all(12.0),
@@ -446,7 +437,7 @@ class _DomainOsintPageState extends State<DomainOsintPage> {
                             width: 18,
                             height: 18,
                             child: CircularProgressIndicator(
-                              color: accentPurple, // Ubah ke ungu
+                              color: Colors.black,
                               strokeWidth: 2,
                             ),
                           ),
@@ -461,8 +452,8 @@ class _DomainOsintPageState extends State<DomainOsintPage> {
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _checkDomain,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: accentPurple, // Ubah ke ungu
-                          foregroundColor: primaryWhite,
+                          backgroundColor: Colors.black,
+                          foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -497,18 +488,18 @@ class _DomainOsintPageState extends State<DomainOsintPage> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: cardDark,
+                    color: Colors.grey[100],
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: accentPurple), // Ubah ke ungu
+                    border: Border.all(color: Colors.grey[400]!),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.error_outline, color: accentPurple), // Ubah ke ungu
+                      Icon(Icons.error_outline, color: Colors.grey[700]),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           _errorMessage!,
-                          style: TextStyle(color: primaryWhite, fontSize: 14),
+                          style: TextStyle(color: Colors.black87, fontSize: 14),
                         ),
                       ),
                     ],

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-const String baseUrl = "http://kenzx.panel.jwxhost.site:2001";
+const String baseUrl = "http://ferrytamvan.lixzhosting.biz.id:4004";
 
 class ChangePasswordPage extends StatefulWidget {
   final String username;
@@ -18,28 +18,64 @@ class ChangePasswordPage extends StatefulWidget {
   State<ChangePasswordPage> createState() => _ChangePasswordPageState();
 }
 
-class _ChangePasswordPageState extends State<ChangePasswordPage> {
+class _ChangePasswordPageState extends State<ChangePasswordPage>
+    with TickerProviderStateMixin {
   final oldPassCtrl = TextEditingController();
   final newPassCtrl = TextEditingController();
   final confirmPassCtrl = TextEditingController();
 
   bool isLoading = false;
-  bool _obscurePassword = true; // <--- State untuk toggle visibility (sesuai snippet)
+  bool _obscureOldPassword = true;
+  bool _obscureNewPassword = true;
+  bool _obscureConfirmPassword = true;
 
-  // --- TEMA WARNA UNGU (Sama dengan Seller Page) ---
-  final Color bgDark = const Color(0xFF0D0221); // Background utama
-  final Color bgSecondary = const Color(0xFF1E1E2E); // Background Solid Input
-  final Color primaryPurple = const Color(0xFF7B1FA2);
-  final Color accentPurple = const Color(0xFFEA80FC);
-  final Color primaryWhite = Colors.white;
-  final Color textGrey = Colors.grey.shade400;
+  late AnimationController _animationController;
+  late AnimationController _fadeController;
+  late Animation<double> _animation;
+  late Animation<double> _fadeAnimation;
 
-  // Gradients
-  final LinearGradient purpleGradient = const LinearGradient(
-    colors: [Color(0xFF7B1FA2), Color(0xFFEA80FC)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
+  final Color primaryDark = const Color(0xFF0A0A0A);
+  final Color primaryRed = const Color(0xFF8B0000);
+  final Color accentRed = const Color(0xFFDC143C);
+  final Color lightRed = const Color(0xFFFF6B6B);
+  final Color cardDark = const Color(0xFF1A1A1A);
+  final Color cardDarker = const Color(0xFF141414);
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+
+    _animation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
+    );
+
+    _animationController.forward();
+    _fadeController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    _fadeController.dispose();
+    oldPassCtrl.dispose();
+    newPassCtrl.dispose();
+    confirmPassCtrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _changePassword() async {
     final oldPass = oldPassCtrl.text.trim();
@@ -47,12 +83,12 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     final confirmPass = confirmPassCtrl.text.trim();
 
     if (oldPass.isEmpty || newPass.isEmpty || confirmPass.isEmpty) {
-      _showMessage("Semua field harus diisi.");
+      _showMessage("All fields are required");
       return;
     }
 
     if (newPass != confirmPass) {
-      _showMessage("Password baru tidak cocok dengan konfirmasi.");
+      _showMessage("New password doesn't match confirmation");
       return;
     }
 
@@ -72,15 +108,12 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
       final data = jsonDecode(res.body);
 
       if (data['success'] == true) {
-        _showMessage("Password berhasil diubah!", isSuccess: true);
-        oldPassCtrl.clear();
-        newPassCtrl.clear();
-        confirmPassCtrl.clear();
+        _showMessage("Password changed successfully", isSuccess: true);
       } else {
-        _showMessage(data['message'] ?? "Gagal mengubah password");
+        _showMessage(data['message'] ?? "Failed to change password");
       }
     } catch (e) {
-      _showMessage("Koneksi error: $e");
+      _showMessage("Server error: $e");
     }
 
     setState(() => isLoading = false);
@@ -90,87 +123,47 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: bgSecondary,
+        backgroundColor: cardDarker,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: accentPurple.withOpacity(0.3)),
+          side: BorderSide(color: accentRed.withOpacity(0.3)),
         ),
         title: Row(
           children: [
             Icon(
-              isSuccess ? Icons.check_circle_outline : Icons.info_outline,
-              color: accentPurple,
+              isSuccess ? Icons.check_circle : Icons.info,
+              color: isSuccess ? Colors.green : accentRed,
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             Text(
-              isSuccess ? "Sukses" : "Peringatan",
+              isSuccess ? "Success" : "Information",
               style: TextStyle(
-                color: primaryWhite,
+                color: Colors.white,
                 fontWeight: FontWeight.bold,
-                fontFamily: 'Orbitron',
               ),
             ),
           ],
         ),
-        content: Text(msg, style: TextStyle(color: textGrey)),
-        actions: [
-          Center(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: purpleGradient,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(
-                  "OK",
-                  style: TextStyle(
-                    color: primaryWhite,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // --- WIDGET INPUT (SESUAI REQUEST) ---
-  Widget _buildInput(TextEditingController controller, String label, IconData icon, [bool isPassword = false]) {
-    return Container(
-      height: 55, // Tinggi tetap
-      margin: EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: BoxDecoration(
-        color: bgSecondary, // Background Solid Ungu Gelap
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: TextFormField(
-        controller: controller,
-        obscureText: isPassword ? _obscurePassword : false,
-        style: const TextStyle(color: Colors.white, fontSize: 16),
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: const TextStyle(color: Colors.white54),
-          prefixIcon: Icon(icon, color: accentPurple),
-          suffixIcon: isPassword
-              ? IconButton(
-            icon: Icon(
-              _obscurePassword ? Icons.visibility_off : Icons.visibility,
-              color: Colors.white54,
-            ),
-            onPressed: () {
-              setState(() {
-                _obscurePassword = !_obscurePassword;
-              });
-            },
-          )
-              : null,
-          border: InputBorder.none, // Hilangkan outline default
-          contentPadding: EdgeInsets.zero, // Padding sudah diatur di Container
+        content: Text(
+          msg,
+          style: const TextStyle(color: Colors.white70),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: accentRed,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                "CLOSE",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          )
+        ],
       ),
     );
   }
@@ -178,128 +171,334 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bgDark,
+      backgroundColor: primaryDark,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: accentPurple),
-          onPressed: () => Navigator.pop(context),
-        ),
-        centerTitle: true,
-        title: Text(
-          "CHANGE PASSWORD",
+        title: const Text(
+          "Security Settings",
           style: TextStyle(
-            color: primaryWhite,
-            fontFamily: 'Orbitron',
-            fontWeight: FontWeight.bold,
-            shadows: [Shadow(color: primaryPurple.withOpacity(0.8), blurRadius: 10)],
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        backgroundColor: primaryDark,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: accentRed.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(
+              Icons.security,
+              color: Color(0xFFDC143C),
+            ),
+          ),
+        ],
+      ),
+      body: FadeTransition(
+        opacity: _fadeAnimation,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  gradient: LinearGradient(
+                    colors: [primaryRed, accentRed],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: accentRed.withOpacity(0.3),
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    AnimatedBuilder(
+                      animation: _animation,
+                      builder: (context, child) {
+                        return Transform.scale(
+                          scale: 0.8 + 0.2 * _animation.value,
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.lock_reset,
+                              color: Colors.white,
+                              size: 40,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      "Change Password",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "Update your password to keep your account secure",
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 14,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: cardDark,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Account Information",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "Username: ${widget.username}",
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.7),
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    _buildPasswordField(
+                      "Current Password",
+                      oldPassCtrl,
+                      _obscureOldPassword,
+                          () => setState(() => _obscureOldPassword = !_obscureOldPassword),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    _buildPasswordField(
+                      "New Password",
+                      newPassCtrl,
+                      _obscureNewPassword,
+                          () => setState(() => _obscureNewPassword = !_obscureNewPassword),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    _buildPasswordField(
+                      "Confirm New Password",
+                      confirmPassCtrl,
+                      _obscureConfirmPassword,
+                          () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    Container(
+                      width: double.infinity,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        gradient: LinearGradient(
+                          colors: [primaryRed, accentRed],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: accentRed.withOpacity(0.4),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: ElevatedButton(
+                        onPressed: isLoading ? null : _changePassword,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: isLoading
+                            ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                            : const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.security, size: 20),
+                            SizedBox(width: 8),
+                            Text(
+                              "UPDATE PASSWORD",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: cardDark,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: accentRed.withOpacity(0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.lightbulb_outline,
+                          color: lightRed,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          "Security Tips",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _buildTip("Use a combination of letters, numbers, and symbols"),
+                    _buildTip("Make your password at least 8 characters long"),
+                    _buildTip("Avoid using personal information in your password"),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(height: 20),
+    );
+  }
 
-            // Header Icon
-            Center(
-              child: Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: purpleGradient,
-                  boxShadow: [
-                    BoxShadow(
-                      color: accentPurple.withOpacity(0.4),
-                      blurRadius: 20,
-                      spreadRadius: 2,
-                    )
-                  ],
-                ),
-                child: Icon(Icons.lock_reset, color: primaryWhite, size: 50),
-              ),
-            ),
-            SizedBox(height: 20),
-
-            Center(
-              child: Text(
-                "SECURITY UPDATE",
-                style: TextStyle(
-                  color: primaryWhite,
-                  fontSize: 22,
-                  fontFamily: 'Orbitron',
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            SizedBox(height: 8),
-            Center(
-              child: Text(
-                "Masukkan password lama dan baru.",
-                style: TextStyle(
-                  color: textGrey,
-                  fontFamily: 'ShareTechMono',
-                ),
-              ),
-            ),
-
-            SizedBox(height: 40),
-
-            // Form Inputs
-            _buildInput(oldPassCtrl, "Old Password", Icons.lock_outline, true),
-            _buildInput(newPassCtrl, "New Password", Icons.vpn_key, true),
-            _buildInput(confirmPassCtrl, "Confirm Password", Icons.enhanced_encryption, true),
-
-            SizedBox(height: 30),
-
-            // Button
-            Container(
-              width: double.infinity,
-              height: 55,
-              decoration: BoxDecoration(
-                gradient: purpleGradient,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: primaryPurple.withOpacity(0.4),
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: ElevatedButton(
-                onPressed: isLoading ? null : _changePassword,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: isLoading
-                    ? SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: primaryWhite,
-                  ),
-                )
-                    : Text(
-                  "UPDATE PASSWORD",
-                  style: TextStyle(
-                    color: primaryWhite,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Orbitron',
-                    letterSpacing: 1,
-                  ),
-                ),
-              ),
-            ),
-          ],
+  Widget _buildPasswordField(
+      String label,
+      TextEditingController controller,
+      bool obscureText,
+      VoidCallback toggleVisibility,
+      ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
         ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: cardDarker,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: accentRed.withOpacity(0.3)),
+          ),
+          child: TextField(
+            controller: controller,
+            obscureText: obscureText,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              suffixIcon: IconButton(
+                icon: Icon(
+                  obscureText ? Icons.visibility_off : Icons.visibility,
+                  color: Colors.white.withOpacity(0.7),
+                ),
+                onPressed: toggleVisibility,
+              ),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTip(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.check_circle_outline,
+            color: lightRed,
+            size: 16,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.7),
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

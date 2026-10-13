@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'dart:ui';
 
 class BugSenderPage extends StatefulWidget {
   final String sessionKey;
@@ -20,24 +20,25 @@ class BugSenderPage extends StatefulWidget {
   State<BugSenderPage> createState() => _BugSenderPageState();
 }
 
-class _BugSenderPageState extends State<BugSenderPage> {
+class _BugSenderPageState extends State<BugSenderPage> with TickerProviderStateMixin {
   List<dynamic> senderList = [];
   bool isLoading = false;
   bool isRefreshing = false;
   String? errorMessage;
-
-  // --- TEMA WARNA MERAH ---
-  final Color bgDark = const Color(0xFF1A0000); // Dark red background
-  final Color primaryRed = const Color(0xFFD32F2F); // Primary red
-  final Color accentRed = const Color(0xFFFF5252); // Bright accent red
-  final Color lightRed = const Color(0xFFFF8A80); // Light red
-  final Color primaryWhite = Colors.white;
-  final Color cardGlass = Colors.white.withOpacity(0.05);
-  final Color borderGlass = Colors.white.withOpacity(0.1);
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+    _animationController.forward();
     _fetchSenders();
   }
 
@@ -49,7 +50,7 @@ class _BugSenderPageState extends State<BugSenderPage> {
 
     try {
       final response = await http.get(
-        Uri.parse("http://kenzx.panel.jwxhost.site:2001/mySender?key=${widget.sessionKey}"),
+        Uri.parse("http://ferrytamvan.lixzhosting.biz.id:4004/mySender?key=${widget.sessionKey}"),
         headers: {'Content-Type': 'application/json'},
       );
 
@@ -88,92 +89,136 @@ class _BugSenderPageState extends State<BugSenderPage> {
 
   void _showAddSenderDialog() {
     final phoneController = TextEditingController();
+    final nameController = TextEditingController();
 
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: bgDark,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Icon(Icons.add_circle, color: accentRed),
-            const SizedBox(width: 12),
-            Text("Add New Sender",
-                style: TextStyle(color: primaryWhite, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: phoneController,
-              keyboardType: TextInputType.phone,
-              style: TextStyle(color: primaryWhite),
-              decoration: InputDecoration(
-                labelText: "Phone Number",
-                labelStyle: TextStyle(color: accentRed),
-                hintText: "62xxx",
-                hintStyle: TextStyle(color: Colors.white54),
-                prefixIcon: Icon(Icons.phone, color: accentRed),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: primaryRed),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: accentRed),
-                ),
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.7),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.red.withOpacity(0.2), width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.red.withOpacity(0.1),
+                blurRadius: 20,
+                spreadRadius: 5,
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.add_circle, color: Colors.white),
+                      ),
+                      const SizedBox(width: 16),
+                      const Text(
+                        "Add New Sender",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Orbitron',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  TextField(
+                    controller: phoneController,
+                    keyboardType: TextInputType.phone,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: "Phone Number",
+                      labelStyle: TextStyle(color: Colors.red.withOpacity(0.7)),
+                      hintText: "62xxx",
+                      hintStyle: TextStyle(color: Colors.red.withOpacity(0.5)),
+                      prefixIcon: const Icon(Icons.phone, color: Colors.white),
+                      filled: true,
+                      fillColor: Colors.red.withOpacity(0.1),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text(
+                          "CANCEL",
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red.withOpacity(0.2),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(color: Colors.red.withOpacity(0.3)),
+                          ),
+                        ),
+                        onPressed: () async {
+                          final number = phoneController.text.trim();
+                          final name = nameController.text.trim();
+
+                          if (number.isEmpty) {
+                            _showSnackBar("Please enter phone number", isError: true);
+                            return;
+                          }
+
+                          Navigator.pop(context);
+                          await _addSender(number, name);
+                        },
+                        child: const Text(
+                          "ADD SENDER",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text("CANCEL", style: TextStyle(color: Colors.white54)),
-          ),
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [primaryRed, accentRed]),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              onPressed: () async {
-                final number = phoneController.text.trim();
-
-                if (number.isEmpty) {
-                  _showSnackBar("Please enter phone number", isError: true);
-                  return;
-                }
-
-                Navigator.pop(context);
-                await _addSender(number);
-              },
-              child: Text("ADD SENDER", style: TextStyle(color: primaryWhite)),
-            ),
-          ),
-        ],
       ),
     );
   }
 
-  Future<void> _addSender(String number) async {
+  Future<void> _addSender(String number, String name) async {
     setState(() => isLoading = true);
 
     try {
       final response = await http.get(
-        Uri.parse("http://kenzx.panel.jwxhost.site:2001/getPairing?key=${widget.sessionKey}&number=$number"),
+        Uri.parse("http://ferrytamvan.lixzhosting.biz.id:4004/getPairing?key=${widget.sessionKey}&number=$number"),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data["valid"] == true) {
-          _showPairingCodeDialog(number, data['pairingCode']);
+          _showPairingCodeDialog(number, data['pairingCode'], name);
           _showSnackBar("Pairing code generated successfully!", isError: false);
         } else {
           _showSnackBar(data['message'] ?? "Failed to generate pairing code", isError: true);
@@ -189,122 +234,132 @@ class _BugSenderPageState extends State<BugSenderPage> {
     }
   }
 
-  void _showPairingCodeDialog(String number, String code) {
+  void _showPairingCodeDialog(String number, String code, String name) {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        backgroundColor: bgDark,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Column(
-          children: [
-            Container(
-              padding: EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: primaryRed.withOpacity(0.2),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.qr_code_2, color: accentRed, size: 40),
-            ),
-            const SizedBox(height: 15),
-            Text("Pairing Required",
-                style: TextStyle(color: primaryWhite, fontWeight: FontWeight.bold, fontSize: 18)),
-          ],
-        ),
-        content: Container(
-          padding: const EdgeInsets.all(20),
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: cardGlass,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: accentRed.withOpacity(0.3)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text("Number: $number", style: TextStyle(color: primaryWhite)),
-              const SizedBox(height: 20),
-
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: accentRed, width: 2),
-                  boxShadow: [
-                    BoxShadow(color: accentRed.withOpacity(0.4), blurRadius: 15, spreadRadius: 1)
-                  ],
-                ),
-                child: Text(
-                  code,
-                  style: TextStyle(
-                    color: accentRed,
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 4,
-                    fontFamily: 'Courier',
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: primaryRed.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: primaryRed),
-                ),
-                child: OutlinedButton.icon(
-                  icon: Icon(Icons.copy, color: accentRed),
-                  label: Text(
-                      "COPY CODE",
-                      style: TextStyle(color: accentRed, fontWeight: FontWeight.bold)
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide.none,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  onPressed: () async {
-                    await Clipboard.setData(ClipboardData(text: code));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text("Code copied to clipboard!", style: TextStyle(color: Colors.white)),
-                        backgroundColor: accentRed,
-                        behavior: SnackBarBehavior.floating,
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                  },
-                ),
+            color: Colors.black.withOpacity(0.7),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.red.withOpacity(0.2), width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.red.withOpacity(0.1),
+                blurRadius: 20,
+                spreadRadius: 5,
               ),
             ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text("CLOSE", style: TextStyle(color: primaryWhite)),
-          ),
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [primaryRed, accentRed]),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.qr_code_2, color: Colors.white, size: 50),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "Pairing Required",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Orbitron',
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  if (name.isNotEmpty) ...[
+                    Text(
+                      "Name: $name",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  Text(
+                    "Number: $number",
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  const SizedBox(height: 24),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.red.withOpacity(0.3)),
+                    ),
+                    child: Text(
+                      code,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 4,
+                        fontFamily: 'Courier',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "Open WhatsApp → Settings → Linked Devices → Link a Device\nEnter this code to complete pairing",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text(
+                          "CLOSE",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red.withOpacity(0.2),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(color: Colors.red.withOpacity(0.3)),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _fetchSenders();
+                        },
+                        child: const Text(
+                          "REFRESH LIST",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              onPressed: () {
-                Navigator.pop(context);
-                _fetchSenders();
-              },
-              child: Text("REFRESH LIST", style: TextStyle(color: primaryWhite)),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -312,42 +367,88 @@ class _BugSenderPageState extends State<BugSenderPage> {
   Future<void> _deleteSender(String senderId) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: bgDark,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent),
-            const SizedBox(width: 12),
-            Text("Confirm Delete", style: TextStyle(color: primaryWhite)),
-          ],
-        ),
-        content: Text(
-          "Are you sure you want to delete this sender? This action cannot be undone.",
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text("CANCEL", style: TextStyle(color: primaryWhite)),
-          ),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.redAccent.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.redAccent),
-            ),
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.7),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.red.withOpacity(0.2), width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.red.withOpacity(0.1),
+                blurRadius: 20,
+                spreadRadius: 5,
               ),
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text("DELETE", style: TextStyle(color: Colors.redAccent)),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.warning, color: Colors.red, size: 50),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "Confirm Delete",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Orbitron',
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "Are you sure you want to delete this sender? This action cannot be undone.",
+                    style: TextStyle(color: Colors.white70),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text(
+                          "CANCEL",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red.withOpacity(0.2),
+                          foregroundColor: Colors.red,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(color: Colors.red.withOpacity(0.5)),
+                          ),
+                        ),
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text(
+                          "DELETE",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-        ],
+        ),
       ),
     );
 
@@ -355,8 +456,9 @@ class _BugSenderPageState extends State<BugSenderPage> {
       setState(() => isLoading = true);
 
       try {
+        // Ganti dengan endpoint delete yang sesuai
         final response = await http.delete(
-          Uri.parse("http://kenzx.panel.jwxhost.site:2001/deleteSender?key=${widget.sessionKey}&id=$senderId"),
+          Uri.parse("http://ferrytamvan.lixzhosting.biz.id:4004/deleteSender?key=${widget.sessionKey}&id=$senderId"),
         );
 
         if (response.statusCode == 200) {
@@ -381,116 +483,147 @@ class _BugSenderPageState extends State<BugSenderPage> {
   void _showSnackBar(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-        backgroundColor: isError ? Colors.redAccent : primaryRed,
+        content: Text(message),
+        backgroundColor: isError ? Colors.red.withOpacity(0.8) : Colors.green.withOpacity(0.8),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  Widget _glassCard({required Widget child}) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.red.withOpacity(0.2), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.red.withOpacity(0.1),
+            blurRadius: 20,
+            spreadRadius: 5,
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: child,
+        ),
       ),
     );
   }
 
   Widget _buildSenderCard(Map<String, dynamic> sender, int index) {
-    final name = sender['sessionName'] ?? 'WhatsApp Sender';
+    final name = sender['sessionName'] ?? 'Unnamed';
+    final number = sender['phone'] ?? 'Unknown';
+    final status = sender['connected'] ?? false;
 
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: cardGlass,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: borderGlass),
-        boxShadow: [
-          BoxShadow(
-            color: primaryRed.withOpacity(0.1),
-            blurRadius: 10,
-            offset: Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: primaryRed.withOpacity(0.2),
-                    shape: BoxShape.circle,
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: _glassCard(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: status ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      status ? Icons.check_circle : Icons.error,
+                      color: status ? Colors.green : Colors.red,
+                    ),
                   ),
-                  child: Icon(Icons.phone_android, color: accentRed),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        name,
-                        style: TextStyle(
-                          color: primaryWhite,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'Orbitron',
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          number,
+                          style: TextStyle(
+                            color: Colors.red.withOpacity(0.7),
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: status ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: status ? Colors.green.withOpacity(0.5) : Colors.red.withOpacity(0.5),
+                      ),
+                    ),
+                    child: Text(
+                      status ? "Connected" : "Disconnected",
+                      style: TextStyle(
+                        color: status ? Colors.green : Colors.red,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.refresh, size: 16),
+                      label: const Text("REFRESH"),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: BorderSide(color: Colors.red.withOpacity(0.3)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      // ID DIHAPUS DI SINI
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: accentRed.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: accentRed.withOpacity(0.3)),
-                  ),
-                  child: Text(
-                    "CONNECTED",
-                    style: TextStyle(
-                      color: accentRed,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1,
+                      onPressed: () => _refreshSenders(),
                     ),
                   ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    icon: Icon(Icons.refresh, size: 16, color: primaryWhite),
-                    label: Text("REFRESH"),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: primaryWhite,
-                      backgroundColor: Colors.white.withOpacity(0.05),
-                      side: BorderSide(color: borderGlass),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.delete, size: 16),
+                      label: const Text("DELETE"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.withOpacity(0.2),
+                        foregroundColor: Colors.red,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () => _deleteSender(sender['id']),
                     ),
-                    onPressed: () => _refreshSenders(),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    icon: Icon(Icons.delete_outline, size: 16, color: Colors.redAccent),
-                    label: Text("DELETE"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent.withOpacity(0.1),
-                      foregroundColor: Colors.redAccent,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    onPressed: () => _deleteSender(sender['id']),
-                  ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -498,97 +631,114 @@ class _BugSenderPageState extends State<BugSenderPage> {
 
   Widget _buildEmptyState() {
     return Center(
-      child: Padding(
-        padding: EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: EdgeInsets.all(30),
-              decoration: BoxDecoration(
-                color: primaryRed.withOpacity(0.1),
-                shape: BoxShape.circle,
-                border: Border.all(color: primaryRed.withOpacity(0.3)),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.3),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.red.withOpacity(0.2), width: 1),
+            ),
+            child: const Icon(
+              Icons.phone_iphone,
+              color: Colors.white,
+              size: 80,
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            "No Senders Found",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Orbitron',
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            "Add your first WhatsApp sender to get started",
+            style: TextStyle(
+              color: Colors.red.withOpacity(0.7),
+              fontSize: 16,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 30),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.add),
+            label: const Text("ADD FIRST SENDER"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.withOpacity(0.2),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: Colors.red.withOpacity(0.3)),
               ),
-              child: Icon(Icons.phone_iphone, color: accentRed, size: 80),
             ),
-            const SizedBox(height: 24),
-            Text(
-              "No Senders Found",
-              style: TextStyle(color: primaryWhite, fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              "Add your first WhatsApp sender to get started",
-              style: TextStyle(color: Colors.white54, fontSize: 14),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 40),
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [primaryRed, accentRed]),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(color: primaryRed.withOpacity(0.4), blurRadius: 15)
-                ],
-              ),
-              child: ElevatedButton.icon(
-                icon: Icon(Icons.add),
-                label: Text("ADD FIRST SENDER"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                ),
-                onPressed: _showAddSenderDialog,
-              ),
-            ),
-          ],
-        ),
+            onPressed: _showAddSenderDialog,
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildErrorState() {
     return Center(
-      child: Padding(
-        padding: EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, color: Colors.redAccent, size: 80),
-            const SizedBox(height: 24),
-            Text(
-              "Failed to Load",
-              style: TextStyle(color: primaryWhite, fontSize: 22, fontWeight: FontWeight.bold),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.red.withOpacity(0.2),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.red.withOpacity(0.5), width: 1),
             ),
-            const SizedBox(height: 12),
-            Text(
-              errorMessage ?? "Unknown error occurred",
-              style: TextStyle(color: Colors.white54, fontSize: 14),
-              textAlign: TextAlign.center,
+            child: const Icon(
+              Icons.error_outline,
+              color: Colors.red,
+              size: 80,
             ),
-            const SizedBox(height: 40),
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [primaryRed, accentRed]),
-                borderRadius: BorderRadius.circular(16),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            "Failed to Load",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Orbitron',
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            errorMessage ?? "Unknown error occurred",
+            style: TextStyle(
+              color: Colors.red.withOpacity(0.7),
+              fontSize: 16,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 30),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.refresh),
+            label: const Text("TRY AGAIN"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.withOpacity(0.2),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: Colors.red.withOpacity(0.3)),
               ),
-              child: ElevatedButton.icon(
-                icon: Icon(Icons.refresh),
-                label: Text("TRY AGAIN"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                ),
-                onPressed: _fetchSenders,
-              ),
             ),
-          ],
-        ),
+            onPressed: _fetchSenders,
+          ),
+        ],
       ),
     );
   }
@@ -596,28 +746,26 @@ class _BugSenderPageState extends State<BugSenderPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bgDark,
+      backgroundColor: Colors.black,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           "Manage Bug Sender",
           style: TextStyle(
-            color: primaryWhite,
+            color: Colors.white,
             fontFamily: 'Orbitron',
             fontWeight: FontWeight.bold,
-            shadows: [
-              Shadow(color: primaryRed.withOpacity(0.8), blurRadius: 10)
-            ],
           ),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: accentRed),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.refresh, color: accentRed),
+            icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: isLoading ? null : _refreshSenders,
           ),
         ],
@@ -625,49 +773,56 @@ class _BugSenderPageState extends State<BugSenderPage> {
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
+            colors: [
+              Colors.black,
+              Colors.red.withOpacity(0.05),
+            ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              bgDark,
-              primaryRed.withOpacity(0.1),
-              bgDark,
-            ],
           ),
         ),
-        child: isLoading && senderList.isEmpty
-            ? Center(child: CircularProgressIndicator(color: accentRed))
-            : errorMessage != null && senderList.isEmpty
-            ? _buildErrorState()
-            : senderList.isEmpty
-            ? _buildEmptyState()
-            : RefreshIndicator(
-          color: accentRed,
-          backgroundColor: cardGlass,
-          onRefresh: _refreshSenders,
-          child: ListView.builder(
-            physics: AlwaysScrollableScrollPhysics(),
-            itemCount: senderList.length,
-            itemBuilder: (context, index) => _buildSenderCard(
-              Map<String, dynamic>.from(senderList[index]),
-              index,
+        child: SafeArea(
+          child: isLoading && senderList.isEmpty
+              ? const Center(child: CircularProgressIndicator(color: Colors.white))
+              : errorMessage != null && senderList.isEmpty
+              ? _buildErrorState()
+              : senderList.isEmpty
+              ? _buildEmptyState()
+              : RefreshIndicator(
+            color: Colors.white,
+            backgroundColor: Colors.black.withOpacity(0.5),
+            onRefresh: _refreshSenders,
+            child: ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
+              itemCount: senderList.length,
+              itemBuilder: (context, index) => _buildSenderCard(
+                Map<String, dynamic>.from(senderList[index]),
+                index,
+              ),
             ),
           ),
         ),
       ),
       floatingActionButton: Container(
+        margin: const EdgeInsets.only(bottom: 20),
         decoration: BoxDecoration(
-          gradient: LinearGradient(colors: [primaryRed, accentRed]),
+          color: Colors.red.withOpacity(0.2),
           shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(color: primaryRed.withOpacity(0.4), blurRadius: 20, spreadRadius: 2)
-          ],
+          border: Border.all(color: Colors.red.withOpacity(0.3), width: 1),
         ),
         child: FloatingActionButton(
-          onPressed: _showAddSenderDialog,
           backgroundColor: Colors.transparent,
-          child: Icon(Icons.add, color: primaryWhite),
+          elevation: 0,
+          onPressed: _showAddSenderDialog,
+          child: const Icon(Icons.add, color: Colors.white),
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 }

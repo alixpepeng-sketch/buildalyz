@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -7,22 +6,16 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:video_player/video_player.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'bug_sender.dart';
 
 import 'nik_check.dart';
 import 'admin_page.dart';
-import 'owner_page.dart'; // <--- Import OwnerPage
 import 'home_page.dart';
 import 'seller_page.dart';
 import 'change_password_page.dart';
 import 'tools_gateway.dart';
 import 'login_page.dart';
-import 'bug_sender.dart';
-import 'contact_page.dart';
-import 'profile_page.dart';
-import 'riwayat_page.dart';
-import 'info_page.dart';
-
+import 'anime_home.dart';
 
 class DashboardPage extends StatefulWidget {
   final String username;
@@ -51,12 +44,13 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _controller;
+  late AnimationController _fadeController;
   late Animation<double> _animation;
+  late Animation<double> _fadeAnimation;
   late WebSocketChannel channel;
 
-  // --- State Variabel ---
   late String sessionKey;
   late String username;
   late String password;
@@ -65,28 +59,25 @@ class _DashboardPageState extends State<DashboardPage>
   late List<Map<String, dynamic>> listBug;
   late List<Map<String, dynamic>> listDoos;
   late List<dynamic> newsList;
-
-  // --- Fitur Profil & Menu Baru ---
   String androidId = "unknown";
-  File? _profileImage; // Menyimpan foto profil
-  VideoPlayerController? _menuVideoController; // Controller untuk video background menu
 
-  int _bottomNavIndex = 0;
+  int _selectedTabIndex = 0;
   Widget _selectedPage = const Placeholder();
 
   int onlineUsers = 0;
   int activeConnections = 0;
 
-  // --- TEMA WARNA MERAH ---
-  final Color bgDark = const Color(0xFF1A0000); // Dark red background
-  final Color primaryRed = const Color(0xFFD32F2F); // Primary red
-  final Color accentRed = const Color(0xFFFF5252); // Bright accent red
-  final Color lightRed = const Color(0xFFFF8A80); // Light red
+  final Color primaryDark = Color(0xFF0A0A0A);
+  final Color primaryRed = Color(0xFF8B0000);
+  final Color accentRed = Color(0xFFDC143C);
+  final Color lightRed = Color(0xFFFF6B6B);
   final Color primaryWhite = Colors.white;
   final Color accentGrey = Colors.grey.shade400;
-  final Color cardGlass = Colors.white.withOpacity(0.05);
-  final Color borderGlass = Colors.white.withOpacity(0.1);
-
+  final Color cardDark = Color(0xFF1A1A1A);
+  final Color cardDarker = Color(0xFF141414);
+  final Color redGradientStart = Color(0xFF8B0000);
+  final Color redGradientEnd = Color(0xFFDC143C);
+  
   @override
   void initState() {
     super.initState();
@@ -100,38 +91,26 @@ class _DashboardPageState extends State<DashboardPage>
     newsList = widget.news;
 
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 450),
+      duration: const Duration(milliseconds: 800),
       vsync: this,
     );
+
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+
     _animation = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
+    );
+
     _controller.forward();
+    _fadeController.forward();
 
     _selectedPage = _buildNewsPage();
 
     _initAndroidIdAndConnect();
-    _loadProfileImage(); // Load foto profil
-    _initMenuVideo();    // Init video background menu
-  }
-
-  // Load Foto Profil dari SharedPreferences
-  Future<void> _loadProfileImage() async {
-    final prefs = await SharedPreferences.getInstance();
-    final imagePath = prefs.getString('profile_image_$username');
-    if (imagePath != null && imagePath.isNotEmpty) {
-      setState(() {
-        _profileImage = File(imagePath);
-      });
-    }
-  }
-
-  // Init Video Background untuk Menu Sidebar
-  void _initMenuVideo() {
-    _menuVideoController = VideoPlayerController.asset('assets/videos/banner.mp4')
-      ..initialize().then((_) {
-        setState(() {});
-        _menuVideoController?.setLooping(true);
-        _menuVideoController?.play();
-      });
   }
 
   Future<void> _initAndroidIdAndConnect() async {
@@ -140,41 +119,52 @@ class _DashboardPageState extends State<DashboardPage>
     _connectToWebSocket();
   }
 
-  void _connectToWebSocket() {
-    channel = WebSocketChannel.connect(Uri.parse('wss://ws-dark.Tr4dict Vloid.my.id'));
-    channel.sink.add(jsonEncode({
-      "type": "validate",
-      "key": sessionKey,
-      "androidId": androidId,
-    }));
-    channel.sink.add(jsonEncode({"type": "stats"}));
+void _connectToWebSocket() async {
+  try {
+    final validateResponse = await http.post(
+      Uri.parse('http://188.166.209.9:3101/validate'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        "type": "validate",
+        "key": sessionKey,
+        "androidId": androidId,
+      }),
+    );
 
-    channel.stream.listen((event) {
-      final data = jsonDecode(event);
-      if (data['type'] == 'myInfo') {
-        if (data['valid'] == false) {
-          if (data['reason'] == 'androidIdMismatch') {
+    if (validateResponse.statusCode == 200) {
+      final validateData = jsonDecode(validateResponse.body);
+      
+      if (validateData['type'] == 'myInfo') {
+        if (validateData['valid'] == false) {
+          if (validateData['reason'] == 'androidIdMismatch') {
             _handleInvalidSession("Your account has logged on another device.");
-          } else if (data['reason'] == 'keyInvalid') {
+          } else if (validateData['reason'] == 'keyInvalid') {
             _handleInvalidSession("Key is not valid. Please login again.");
           }
+          return;
         }
       }
-      if (data['type'] == 'stats') {
+    }
+
+    final statsResponse = await http.post(
+      Uri.parse('http://188.166.209.9:3101/stats'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({"type": "stats"}),
+    );
+
+    if (statsResponse.statusCode == 200) {
+      final statsData = jsonDecode(statsResponse.body);
+      if (statsData['type'] == 'stats') {
         setState(() {
-          onlineUsers = data['onlineUsers'] ?? 0;
-          activeConnections = data['activeConnections'] ?? 0;
+          onlineUsers = statsData['onlineUsers'] ?? 0;
+          activeConnections = statsData['activeConnections'] ?? 0;
         });
       }
-    });
-  }
-
-  Future<void> _openUrl(String url) async {
-    final Uri uri = Uri.parse(url);
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      throw Exception("Could not launch $uri");
     }
+  } catch (error) {
+    print('HTTP Error: $error');
   }
+}
 
   void _handleInvalidSession(String message) async {
     await Future.delayed(const Duration(milliseconds: 300));
@@ -186,7 +176,7 @@ class _DashboardPageState extends State<DashboardPage>
       context: context,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
-        backgroundColor: bgDark,
+        backgroundColor: cardDarker,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: Text("⚠️ Session Expired", style: TextStyle(color: accentRed, fontWeight: FontWeight.bold)),
         content: Text(message, style: TextStyle(color: accentGrey)),
@@ -198,16 +188,16 @@ class _DashboardPageState extends State<DashboardPage>
                     (route) => false,
               );
             },
-            child: Text("OK", style: TextStyle(color: primaryRed, fontWeight: FontWeight.bold)),
+            child: Text("OK", style: TextStyle(color: accentRed, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
     );
   }
 
-  void _onBottomNavTapped(int index) {
+  void _onTabTapped(int index) {
     setState(() {
-      _bottomNavIndex = index;
+      _selectedTabIndex = index;
       if (index == 0) {
         _selectedPage = _buildNewsPage();
       } else if (index == 1) {
@@ -220,246 +210,70 @@ class _DashboardPageState extends State<DashboardPage>
           sessionKey: sessionKey,
         );
       } else if (index == 2) {
-        _selectedPage = InfoPage(
-          sessionKey: sessionKey);
-      } else if (index == 3) {
         _selectedPage = ToolsPage(
             sessionKey: sessionKey, userRole: role, listDoos: listDoos);
+    } else if (index == 3) {
+      _selectedPage = HomeAnimePage();
       }
     });
   }
 
-  void _onSidebarTabSelected(int index) {
+  void _onDrawerItemSelected(int index) {
     setState(() {
-      if (index == 1) {
-        _selectedPage = SellerPage(keyToken: sessionKey);
-      } else if (index == 2) {
-        _selectedPage = AdminPage(sessionKey: sessionKey);
-      } else if (index == 3) {
-        _selectedPage = OwnerPage(sessionKey: sessionKey, username: username);
-      }
+      if (index == 3) _selectedPage = NikCheckerPage();
+      else if (index == 4) _selectedPage = ChangePasswordPage(username: username, sessionKey: sessionKey);
+      else if (index == 5) _selectedPage = SellerPage(keyToken: sessionKey);
+      else if (index == 6) _selectedPage = AdminPage(sessionKey: sessionKey);
     });
-    Navigator.pop(context);
   }
 
   Widget _buildNewsPage() {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // 1. ONLINE & CONNECTIONS
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: cardGlass,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: borderGlass, width: 1),
-                boxShadow: [
-                  BoxShadow(
-                    color: primaryRed.withOpacity(0.15),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _buildCompactInfoItem(
-                      icon: Icons.people,
-                      label: "Online",
-                      value: "$onlineUsers",
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildCompactInfoItem(
-                      icon: Icons.link,
-                      label: "Connections",
-                      value: "$activeConnections",
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeaderSection(),
 
-          // 2. NEWS SECTION
-          Container(
-            width: double.infinity,
-            height: 190,
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: PageView.builder(
-              controller: PageController(viewportFraction: 0.9),
-              itemCount: newsList.length,
-              itemBuilder: (context, index) {
-                final item = newsList[index];
-                return Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 8),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    color: cardGlass,
-                    border: Border.all(color: borderGlass),
-                    boxShadow: [
-                      BoxShadow(
-                        color: primaryRed.withOpacity(0.2),
-                        blurRadius: 12,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        if (item['image'] != null && item['image'].toString().isNotEmpty)
-                          NewsMedia(url: item['image']),
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.black.withOpacity(0.6),
-                                Colors.transparent,
-                                primaryRed.withOpacity(0.1),
-                              ],
-                              begin: Alignment.bottomCenter,
-                              end: Alignment.topCenter,
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 16,
-                          left: 16,
-                          right: 16,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item['title'] ?? 'No Title',
-                                style: TextStyle(
-                                  color: primaryWhite,
-                                  fontSize: 16,
-                                  fontFamily: "Orbitron",
-                                  fontWeight: FontWeight.bold,
-                                  shadows: [
-                                    Shadow(
-                                      color: primaryRed.withOpacity(0.8),
-                                      blurRadius: 10,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                item['desc'] ?? '',
-                                style: TextStyle(
-                                  color: accentRed,
-                                  fontFamily: "ShareTechMono",
-                                  fontSize: 12,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
+            const SizedBox(height: 24),
 
-          const SizedBox(height: 24),
+            _buildNewsSection(),
 
-          // --- NEW BUTTON: JOIN TELEGRAM CHANNEL ---
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Container(
+            const SizedBox(height: 24),
+
+            _buildStatsCards(),
+
+            const SizedBox(height: 24),
+
+            _buildAccountInfo(),
+            
+            const SizedBox(height: 12),
+
+            Container(
               width: double.infinity,
-              height: 55,
-              decoration: BoxDecoration(
-                color: cardGlass,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: borderGlass, width: 1),
-                boxShadow: [
-                  BoxShadow(
-                    color: primaryRed.withOpacity(0.15),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
               child: ElevatedButton.icon(
-                icon: const Icon(FontAwesomeIcons.telegram, color: Colors.white, size: 22),
-                label: const Text(
-                  "Join Tr4dict Vloid Info Channel",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Orbitron',
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                ),
-                onPressed: () {
-                  _openUrl("https://t.me/Tr4dictXTeam");
-                },
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // 3. MANAGE BUG SENDER BUTTON
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Container(
-              width: double.infinity,
-              height: 55,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [primaryRed, accentRed],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: primaryRed.withOpacity(0.4),
-                    blurRadius: 15,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-              ),
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.bug_report, color: Colors.white, size: 20),
-                label: const Text(
+                icon: Icon(FontAwesomeIcons.whatsapp, color: primaryWhite, size: 18),
+                label: Text(
                   "MANAGE BUG SENDER",
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
+                    color: primaryWhite,
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
                     fontFamily: 'Orbitron',
                     letterSpacing: 0.5,
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
+                  backgroundColor: Color(0xFFDC143C),
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(10),
+                    side: BorderSide(color: Color(0xFFFF6B6B).withOpacity(0.5)),
                   ),
+                  elevation: 4,
+                  shadowColor: Color(0xFFDC143C).withOpacity(0.5),
                 ),
                 onPressed: () {
                   Navigator.push(
@@ -475,47 +289,417 @@ class _DashboardPageState extends State<DashboardPage>
                 },
               ),
             ),
+
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeaderSection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          colors: [redGradientStart, redGradientEnd],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: accentRed.withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
           ),
-
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.dashboard,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Welcome back",
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
+                    ),
+                    Text(
+                      "SixEyesX Dashboard",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 16),
-
+          Row(
+            children: [
+              _buildQuickStat(
+                icon: Icons.people,
+                label: "Online Users",
+                value: "$onlineUsers",
+              ),
+              const SizedBox(width: 16),
+              _buildQuickStat(
+                icon: Icons.link,
+                label: "Connections",
+                value: "$activeConnections",
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildAccessButton({
-    required String label,
+  Widget _buildQuickStat({
     required IconData icon,
-    required VoidCallback onTap,
+    required String label,
+    required String value,
+  }) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: Colors.white70, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                    ),
+                  ),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNewsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Latest News",
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 200,
+          child: PageView.builder(
+            controller: PageController(viewportFraction: 0.9),
+            itemCount: newsList.length,
+            itemBuilder: (context, index) {
+              final item = newsList[index];
+              return Container(
+                margin: const EdgeInsets.only(right: 16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  color: cardDark,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (item['image'] != null && item['image'].toString().isNotEmpty)
+                        NewsMedia(url: item['image']),
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.black.withOpacity(0.7),
+                              Colors.transparent,
+                            ],
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 16,
+                        left: 16,
+                        right: 16,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item['title'] ?? 'No Title',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              item['desc'] ?? '',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.7),
+                                fontSize: 14,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatsCards() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Account Statistics",
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatCard(
+                icon: Icons.person,
+                title: "Username",
+                value: username,
+                color: accentRed,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildStatCard(
+                icon: Icons.verified_user,
+                title: "Role",
+                value: role.toUpperCase(),
+                color: _getRoleColor(role),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _buildStatCard(
+          icon: Icons.calendar_today,
+          title: "Account Expires",
+          value: expiredDate,
+          color: Colors.orange,
+          fullWidth: true,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCard({
+    required IconData icon,
+    required String title,
+    required String value,
+    required Color color,
+    bool fullWidth = false,
   }) {
     return Container(
-      height: 50,
+      width: fullWidth ? double.infinity : null,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: cardGlass,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: accentRed.withOpacity(0.4)),
+        color: cardDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: accentRed, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.7),
+                    fontSize: 14,
+                  ),
                 ),
-              ),
+                Text(
+                  value,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAccountInfo() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: cardDark,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Quick Actions",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 2,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            childAspectRatio: 1.5,
+            children: [
+              if (role == "reseller" || role == "owner")
+                _buildActionCard(
+                  icon: Icons.store,
+                  label: "Seller Page",
+                  onTap: () => _onDrawerItemSelected(5),
+                ),
+              if (role == "owner")
+                _buildActionCard(
+                  icon: Icons.admin_panel_settings,
+                  label: "Admin Panel",
+                  onTap: () => _onDrawerItemSelected(6),
+                ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionCard({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: cardDarker,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: accentRed.withOpacity(0.3)),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: accentRed, size: 28),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );
@@ -524,65 +708,108 @@ class _DashboardPageState extends State<DashboardPage>
   Color _getRoleColor(String role) {
     switch (role.toLowerCase()) {
       case "owner":
-        return accentRed;
+        return Colors.red;
       case "vip":
-        return primaryRed;
+        return accentRed;
       case "reseller":
-        return Colors.lightGreenAccent;
+        return Colors.green;
       case "premium":
-        return Colors.orangeAccent;
+        return Colors.orange;
       default:
         return lightRed;
     }
   }
 
-  Widget _buildCompactInfoItem({
-    required IconData icon,
-    required String label,
-    required String value,
-    Color valueColor = Colors.white,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: borderGlass),
-      ),
-      child: Row(
+  Widget _buildDrawer() {
+    return Drawer(
+      backgroundColor: cardDarker,
+      child: ListView(
+        padding: EdgeInsets.zero,
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: primaryRed.withOpacity(0.2),
-              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [redGradientStart, redGradientEnd],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
             ),
-            child: Icon(icon, color: accentRed, size: 18),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  label,
+                const Text(
+                  "SixEyesX",
                   style: TextStyle(
-                    color: accentGrey,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  style: TextStyle(
-                    color: valueColor,
-                    fontSize: 14,
+                    color: Colors.white,
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    fontFamily: 'ShareTechMono',
                   ),
                 ),
+                const SizedBox(height: 16),
+                _buildDrawerInfo("User:", username),
+                _buildDrawerInfo("Role:", role),
+                _buildDrawerInfo("Expired:", expiredDate),
               ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (role == "reseller" || role == "owner")
+            _buildDrawerItem(
+              icon: Icons.store,
+              label: "Seller Page",
+              onTap: () {
+                Navigator.pop(context);
+                _onDrawerItemSelected(5);
+              },
+            ),
+          if (role == "owner")
+            _buildDrawerItem(
+              icon: Icons.admin_panel_settings,
+              label: "Admin Page",
+              onTap: () {
+                Navigator.pop(context);
+                _onDrawerItemSelected(6);
+              },
+            ),
+          const Divider(color: Colors.white24),
+          _buildDrawerItem(
+            icon: Icons.logout,
+            label: "Logout",
+            onTap: () async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.clear();
+              if (!mounted) return;
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const LoginPage()),
+                    (route) => false,
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDrawerInfo(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],
@@ -590,157 +817,97 @@ class _DashboardPageState extends State<DashboardPage>
     );
   }
 
-  Widget _buildCustomDrawer() {
-    return Drawer(
-      backgroundColor: bgDark,
-      width: MediaQuery.of(context).size.width * 0.8,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // 1. BAGIAN ATAS (HEADER VIDEO & PROFIL)
-          Container(
-            height: 250,
-            color: Colors.black,
-            child: Stack(
-              children: [
-                if (_menuVideoController != null && _menuVideoController!.value.isInitialized)
-                  SizedBox.expand(
-                    child: FittedBox(
-                      fit: BoxFit.cover,
-                      child: SizedBox(
-                        width: _menuVideoController!.value.size.width,
-                        height: _menuVideoController!.value.size.height,
-                        child: VideoPlayer(_menuVideoController!),
-                      ),
-                    ),
-                  ),
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black.withOpacity(0.2),
-                        Colors.black.withOpacity(0.8),
-                      ],
-                    ),
-                  ),
-                ),
-                SafeArea(
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 100,
-                          height: 100,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: accentRed, width: 3),
-                            boxShadow: [
-                              BoxShadow(
-                                color: primaryRed.withOpacity(0.6),
-                                blurRadius: 15,
-                                spreadRadius: 2,
-                              )
-                            ],
-                          ),
-                          child: ClipOval(
-                            child: _profileImage != null
-                                ? Image.file(
-                              _profileImage!,
-                              fit: BoxFit.cover,
-                            )
-                                : Icon(
-                              FontAwesomeIcons.userAstronaut,
-                              size: 50,
-                              color: Colors.white.withOpacity(0.8),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          username,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'Orbitron',
-                          ),
-                        ),
-                        Text(
-                          role.toUpperCase(),
-                          style: TextStyle(
-                            color: accentRed,
-                            fontSize: 14,
-                            letterSpacing: 2,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+  Widget _buildDrawerItem({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: accentRed),
+      title: Text(
+        label,
+        style: const TextStyle(color: Colors.white),
+      ),
+      onTap: onTap,
+    );
+  }
+
+  void _showAccountMenu() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: cardDarker,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: accentRed,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-          ),
-
-          // 2. BAGIAN BAWAH (DAFTAR MENU)
-          Expanded(
-            child: Container(
-              color: bgDark,
-              child: ListView(
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                children: [
-                  // MENU SELLER (HANYA RESELLER)
-                  if (role == "reseller")
-                    _buildDrawerMenuItem(
-                      icon: Icons.storefront,
-                      label: "Seller Page",
-                      onTap: () => _onSidebarTabSelected(1),
+            const SizedBox(height: 24),
+            const Text(
+              "Account Information",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 24),
+            _infoCard(FontAwesomeIcons.user, "Username", username),
+            _infoCard(FontAwesomeIcons.calendar, "Expired", expiredDate),
+            _infoCard(FontAwesomeIcons.shieldAlt, "Role", role),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.lock_reset, color: Colors.white),
+                    label: const Text("Change Password"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: accentRed,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-
-                  // MENU ADMIN (HANYA ADMIN)
-                  if (role == "admin")
-                    _buildDrawerMenuItem(
-                      icon: Icons.admin_panel_settings,
-                      label: "Admin Page",
-                      onTap: () => _onSidebarTabSelected(2),
-                    ),
-
-                  // MENU OWNER (HANYA OWNER)
-                  if (role == "owner")
-                    _buildDrawerMenuItem(
-                      icon: Icons.workspace_premium,
-                      label: "Owner Page",
-                      onTap: () => _onSidebarTabSelected(3),
-                    ),
-
-                  _buildDrawerMenuItem(
-                    icon: Icons.history_rounded,
-                    label: "Riwayat Aktivitas",
-                    onTap: () {
-                      Navigator.pop(context); // Tutup drawer dulu
+                    onPressed: () {
+                      Navigator.pop(context);
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => RiwayatPage(
+                          builder: (_) => ChangePasswordPage(
+                            username: username,
                             sessionKey: sessionKey,
-                            role: role,
                           ),
                         ),
                       );
                     },
                   ),
-
-                  const SizedBox(height: 20),
-
-                  _buildDrawerMenuItem(
-                    icon: Icons.logout,
-                    label: "Log Out",
-                    isLogout: true,
-                    onTap: () async {
-                      Navigator.pop(context);
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.logout, color: Colors.white),
+                    label: const Text("Logout"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey.shade700,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    onPressed: () async {
                       final prefs = await SharedPreferences.getInstance();
                       await prefs.clear();
                       if (!mounted) return;
@@ -750,53 +917,59 @@ class _DashboardPageState extends State<DashboardPage>
                       );
                     },
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildDrawerMenuItem({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    bool isLogout = false,
-  }) {
+  Widget _infoCard(IconData icon, String label, String value) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isLogout
-            ? Colors.red.withOpacity(0.2)
-            : cardGlass,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isLogout ? Colors.red.withOpacity(0.5) : borderGlass,
-        ),
+        color: cardDark,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: accentRed.withOpacity(0.3)),
       ),
-      child: ListTile(
-        leading: Icon(
-          icon,
-          color: isLogout ? Colors.redAccent : accentRed,
-          size: 22,
-        ),
-        title: Text(
-          label,
-          style: TextStyle(
-            color: isLogout ? Colors.redAccent : primaryWhite,
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: accentRed.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: accentRed),
           ),
-        ),
-        trailing: const Icon(
-          Icons.arrow_forward_ios,
-          color: Colors.white38,
-          size: 14,
-        ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        onTap: onTap,
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.7),
+                    fontSize: 14,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -804,98 +977,71 @@ class _DashboardPageState extends State<DashboardPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bgDark,
-      extendBodyBehindAppBar: true,
+      backgroundColor: primaryDark,
       appBar: AppBar(
-        title: Text(
-          "Hai, $username",
+        title: const Text(
+          "SixEyesX",
           style: TextStyle(
-            color: primaryWhite,
+            color: Colors.white,
             fontWeight: FontWeight.bold,
-            fontSize: 20,
-            shadows: [
-              Shadow(
-                color: primaryRed.withOpacity(0.8),
-                blurRadius: 10,
-              ),
-            ],
           ),
         ),
-        backgroundColor: Colors.transparent,
+        backgroundColor: primaryDark,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
-            icon: Icon(Icons.headset_mic_outlined, color: accentRed),
-            tooltip: 'Customer Service',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => ContactPage()),
-              );
-            },
+            icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+            onPressed: () {},
           ),
           IconButton(
-            icon: const Icon(FontAwesomeIcons.userCircle, color: Color(0xFFFF5252)),
-            tooltip: 'My Profile',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ProfilePage(
-                    username: username,
-                    password: password,
-                    role: role,
-                    expiredDate: expiredDate,
-                    sessionKey: sessionKey,
-                  ),
-                ),
-              );
-            },
+            icon: const Icon(Icons.account_circle, color: Colors.white),
+            onPressed: _showAccountMenu,
           ),
         ],
       ),
-      drawer: _buildCustomDrawer(),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              bgDark,
-              primaryRed.withOpacity(0.1),
-              bgDark,
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: FadeTransition(opacity: _animation, child: _selectedPage),
-        ),
-      ),
+      drawer: _buildDrawer(),
+      body: FadeTransition(opacity: _animation, child: _selectedPage),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: cardGlass,
-          border: Border(top: BorderSide(color: borderGlass)),
+          color: cardDarker,
           boxShadow: [
             BoxShadow(
-              color: primaryRed.withOpacity(0.1),
+              color: Colors.black.withOpacity(0.2),
               blurRadius: 10,
-              offset: const Offset(0, -2),
+              offset: const Offset(0, -5),
             ),
           ],
         ),
         child: BottomNavigationBar(
           backgroundColor: Colors.transparent,
           selectedItemColor: accentRed,
-          unselectedItemColor: accentGrey,
-          currentIndex: _bottomNavIndex,
-          onTap: _onBottomNavTapped,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
+          unselectedItemColor: Colors.white54,
+          currentIndex: _selectedTabIndex,
+          onTap: _onTabTapped,
+          type: BottomNavigationBarType.fixed,
           items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-            BottomNavigationBarItem(icon: Icon(FontAwesomeIcons.whatsapp), label: "WhatsApp"),
-            BottomNavigationBarItem(icon: Icon(Icons.notifications_none), label: "Info",),
-            BottomNavigationBarItem(icon: Icon(Icons.build_circle_outlined), label: "Tools"),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home),
+              label: "Home",
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.message_outlined),
+              activeIcon: Icon(Icons.message),
+              label: "WhatsApp",
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.build_outlined),
+              activeIcon: Icon(Icons.build),
+              label: "Tools",
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.movie_filter_outlined),
+              activeIcon: Icon(Icons.movie_filter),
+              label: "Anime",
+            ),
+
           ],
         ),
       ),
@@ -906,7 +1052,7 @@ class _DashboardPageState extends State<DashboardPage>
   void dispose() {
     channel.sink.close(status.goingAway);
     _controller.dispose();
-    _menuVideoController?.dispose();
+    _fadeController.dispose();
     super.dispose();
   }
 }
@@ -958,9 +1104,9 @@ class _NewsMediaState extends State<NewsMedia> {
           child: VideoPlayer(_controller!),
         );
       } else {
-        return const Center(
+        return Center(
           child: CircularProgressIndicator(
-            color: Color(0xFFFF5252),
+            color: Color(0xFFDC143C),
           ),
         );
       }
@@ -970,7 +1116,7 @@ class _NewsMediaState extends State<NewsMedia> {
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => Container(
           color: Colors.grey.shade800,
-          child: const Icon(Icons.error, color: Color(0xFFFF5252)),
+          child: const Icon(Icons.error, color: Color(0xFFDC143C)),
         ),
       );
     }
