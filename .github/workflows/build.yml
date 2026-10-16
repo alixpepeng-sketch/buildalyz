@@ -43,8 +43,8 @@ jobs:
           flutter-version: '3.35.6'
           channel: 'stable'
 
-      # STEP 'Prepare Android folder' DIHAPUS 
-      # Supaya folder android asli dari repo lu gak diobrak-abrik / ditimpa template kosong.
+      - name: Flutter Clean
+        run: flutter clean
 
       - name: Flutter pub get
         run: flutter pub get
