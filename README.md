@@ -1,16 +1,14 @@
-# xxo25
+# Alyz WhatsApp Project - Secure Flutter App
 
-Bug WhatsApp Crasher
+## TECH STACK
+- Flutter 3.24.5 / Dart 3.5.4
+- Java 21 Temurin / Kotlin 1.9.22 / Gradle 8.5 / AGP 8.1.0
+- Min SDK 21, Target SDK 34, Compile SDK 34
+- Design: Monochrome Neubrutalism (Black & White, 3px Border, Rounded 20-24px, SF Pro)
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## SECURITY SETUP & GITHUB ACTIONS
+1. Download `google-services.json` from Firebase Console.
+2. Convert file to base64 string via online tool or command:
+   `base64 -w 0 android/app/google-services.json`
+3. Add a new secret named `GOOGLE_SERVICES_JSON` in GitHub Repository Settings -> Secrets and variables -> Actions.
+4. Push code to `main` branch to trigger auto-build APK via GitHub Actions workflow.
