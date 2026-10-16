@@ -9,24 +9,24 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  firebase_core: ^2.27.0
-  firebase_auth: ^4.17.8
-  cloud_firestore: ^4.15.8
-  firebase_storage: ^11.6.5
-  firebase_database: ^10.4.9
-  firebase_app_check: ^0.2.1+7
+  firebase_core: ^3.8.0
+  firebase_auth: ^5.3.1
+  cloud_firestore: ^5.4.4
+  firebase_storage: ^12.3.4
+  firebase_database: ^11.3.2
+  firebase_app_check: ^0.3.2+1
   
   encrypt: ^5.0.3
   crypto: ^3.0.6
   flutter_dotenv: ^5.2.1
   
-  permission_handler: ^11.3.1
-  image_picker: ^1.0.7
-  intl: ^0.19.0
+  permission_handler: ^12.0.0+1
+  image_picker: ^1.1.2
+  intl: ^0.20.2
   cupertino_icons: ^1.0.8
-  flutter_contacts: ^1.1.9
+  flutter_contacts: ^2.0.1
   
-  agora_rtc_engine: ^5.3.0
+  agora_rtc_engine: ^6.2.6
 
 dev_dependencies:
   flutter_test:
