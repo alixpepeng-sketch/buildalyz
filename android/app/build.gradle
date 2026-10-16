@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace "com.alyz.whatsapp"
-    compileSdk 36
+    compileSdk 34 // Disinkronkan agar kompatibel dengan plugin lawas
     ndkVersion "26.1.10909125"
 
     compileOptions {
@@ -21,11 +21,11 @@ android {
 
     defaultConfig {
         applicationId "com.alyz.whatsapp"
-        minSdk 21
-        targetSdk 36
+        minSdk 21 // Agar bisa di-install di HP Android 21 lu
+        targetSdk 34 // Disinkronkan dengan compileSdk
         versionCode 1
         versionName "1.0.0"
-        multiDexEnabled true
+        multiDexEnabled true // Wajib buat handle banyak plugin di SDK 21
     }
 
     buildTypes {
