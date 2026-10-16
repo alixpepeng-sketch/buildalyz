@@ -43,8 +43,11 @@ jobs:
           flutter-version: '3.35.6'
           channel: 'stable'
 
-      - name: Flutter Clean
-        run: flutter clean
+      - name: Clean Cache & Lockfiles
+        run: |
+          rm -rf .dart_tool
+          rm -f pubspec.lock
+          flutter clean
 
       - name: Flutter pub get
         run: flutter pub get
