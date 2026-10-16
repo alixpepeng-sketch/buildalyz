@@ -1,4 +1,4 @@
-Name: Build APK
+name: Build APK
 run-name: Build APK ${{ inputs.requestId || github.sha }}
 
 on:
