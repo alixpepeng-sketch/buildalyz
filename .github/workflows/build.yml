@@ -3,7 +3,20 @@ name: Build Alyz APK Secure
 on: 
   push: 
     branches: [main]
-  workflow_dispatch: # Tambahkan ini agar bisa di-trigger manual
+  workflow_dispatch:
+    inputs:
+      appName:
+        description: 'Application Name'
+        required: false
+        type: string
+      packageName:
+        description: 'Package Name'
+        required: false
+        type: string
+      requestId:
+        description: 'Request ID'
+        required: false
+        type: string
 
 jobs: 
   build: 
