@@ -1,14 +1,9 @@
-# Alyz WhatsApp Project - Secure Flutter App
+# Alyz WhatsApp Project
+Project Flutter 3.35+ dengan Java 21, diamankan dan dibuild via GitHub Actions. Desain menggunakan gaya Monochrome Neubrutalism (Hitam, Putih, border 3px).
 
-## TECH STACK
-- Flutter 3.24.5 / Dart 3.5.4
-- Java 21 Temurin / Kotlin 1.9.22 / Gradle 8.5 / AGP 8.1.0
-- Min SDK 21, Target SDK 34, Compile SDK 34
-- Design: Monochrome Neubrutalism (Black & White, 3px Border, Rounded 20-24px, SF Pro)
-
-## SECURITY SETUP & GITHUB ACTIONS
-1. Download `google-services.json` from Firebase Console.
-2. Convert file to base64 string via online tool or command:
-   `base64 -w 0 android/app/google-services.json`
-3. Add a new secret named `GOOGLE_SERVICES_JSON` in GitHub Repository Settings -> Secrets and variables -> Actions.
-4. Push code to `main` branch to trigger auto-build APK via GitHub Actions workflow.
+## SECURITY SETUP STEPS (GitHub Actions)
+1. Download `google-services.json` dari Firebase Console.
+2. Convert file tersebut ke format Base64 via [base64.guru](https://base64.guru/converter/encode/file).
+3. Buka Repository GitHub > Settings > Secrets and variables > Actions > New repository secret.
+4. Set Name: `GOOGLE_SERVICES_JSON` dan Paste hasil Base64 di Secret Value.
+5. Lakukan Push ke branch `main`, GitHub Actions akan otomatis merakit APK (obfuscated & split-debug-info) secara aman.
