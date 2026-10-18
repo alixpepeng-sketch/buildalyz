@@ -1,9 +1,16 @@
-# Alyz WhatsApp Project
-Project Flutter 3.35+ dengan Java 21, diamankan dan dibuild via GitHub Actions. Desain menggunakan gaya Monochrome Neubrutalism (Hitam, Putih, border 3px).
+# xxo25
 
-## SECURITY SETUP STEPS (GitHub Actions)
-1. Download `google-services.json` dari Firebase Console.
-2. Convert file tersebut ke format Base64 via [base64.guru](https://base64.guru/converter/encode/file).
-3. Buka Repository GitHub > Settings > Secrets and variables > Actions > New repository secret.
-4. Set Name: `GOOGLE_SERVICES_JSON` dan Paste hasil Base64 di Secret Value.
-5. Lakukan Push ke branch `main`, GitHub Actions akan otomatis merakit APK (obfuscated & split-debug-info) secara aman.
+Bug WhatsApp Crasher
+
+## Getting Started
+
+This project is a starting point for a Flutter application.
+
+A few resources to get you started if this is your first Flutter project:
+
+- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
+- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+
+For help getting started with Flutter development, view the
+[online documentation](https://docs.flutter.dev/), which offers tutorials,
+samples, guidance on mobile development, and a full API reference.

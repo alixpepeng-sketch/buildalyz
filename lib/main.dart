@@ -1,36 +1,90 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-// import 'firebase_options.dart';
-import 'screens/login/login_screen.dart';
+import 'login_page.dart';
+import 'dashboard_page.dart';
+import 'home_page.dart';
+import 'seller_page.dart';
+import 'admin_page.dart';
+import 'landing.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  // await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(const AlyzWhatsApp());
+void main() {
+  runApp(const MyApp());
 }
 
-class AlyzWhatsApp extends StatelessWidget {
-  const AlyzWhatsApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Alyz WhatsApp',
+      debugShowCheckedModeBanner: false,
+      title: 'SixEyesX',
       theme: ThemeData(
-        scaffoldBackgroundColor: Colors.white,
-        fontFamily: 'SF Pro',
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          iconTheme: IconThemeData(color: Colors.black),
-          titleTextStyle: TextStyle(color: Colors.black, fontSize: 24, fontWeight: FontWeight.w900),
-        ),
-        textTheme: const TextTheme(
-          bodyLarge: TextStyle(color: Colors.black),
-          bodyMedium: TextStyle(color: Colors.black),
+        brightness: Brightness.dark,
+        fontFamily: 'ShareTechMono',
+        scaffoldBackgroundColor: Colors.black,
+        colorScheme: ColorScheme.dark().copyWith(
+          secondary: Colors.purple,
         ),
       ),
-      home: const LoginScreen(),
+      initialRoute: '/',
+      onGenerateRoute: (settings) {
+        switch (settings.name) {
+          case '/':
+            return MaterialPageRoute(builder: (_) => LandingPage());
+          case '/login':
+            return MaterialPageRoute(builder: (_) => const LoginPage());
+          case '/dashboard':
+            final args = settings.arguments as Map<String, dynamic>;
+            return MaterialPageRoute(
+              builder: (_) => DashboardPage(
+                username: args['username'],
+                password: args['password'],
+                role: args['role'],
+                sessionKey: args['key'],
+                expiredDate: args['expiredDate'],
+                listBug: List<Map<String, dynamic>>.from(args['listBug'] ?? []), // ✅ aman
+                listDoos: List<Map<String, dynamic>>.from(args['listDoos'] ?? []), // ✅ aman
+                news: List<Map<String, dynamic>>.from(args['news'] ?? []), // ✅ aman
+              ),
+            );
+
+          case '/home':
+            final args = settings.arguments as Map<String, dynamic>;
+            return MaterialPageRoute(
+              builder: (_) => HomePage(
+                username: args['username'],
+                password: args['password'],
+                listBug: List<Map<String, dynamic>>.from(args['listBug'] ?? []), // ✅ aman
+                role: args['role'],
+                expiredDate: args['expiredDate'],
+                sessionKey: args['sessionKey'],
+              ),
+            );
+
+          case '/seller':
+            final args = settings.arguments as Map<String, dynamic>;
+            return MaterialPageRoute(
+              builder: (_) => SellerPage(
+                keyToken: args['keyToken'],
+              ),
+            );
+
+          case '/admin':
+            final args = settings.arguments as Map<String, dynamic>;
+            return MaterialPageRoute(
+              builder: (_) => AdminPage(
+                sessionKey: args['sessionKey'],
+              ),
+            );
+
+          default:
+            return MaterialPageRoute(
+              builder: (_) => const Scaffold(
+                body: Center(child: Text("404 - Not Found")),
+              ),
+            );
+        }
+      },
     );
   }
 }
